@@ -1,7 +1,7 @@
 {
   "id": "auras",
   "title": "Auras",
-  "version": "1.0.0",
+  "version": "#{VERSION}#",
   "compatibility": {
     "minimum": "13",
     "verified": "13.338"
@@ -10,8 +10,7 @@
     {
       "name": "Michael",
       "url": "https://github.com/roth-michael",
-      "discord": "hi25114",
-      "flags": {}
+      "discord": "hi25114"
     }
   ],
   "esmodules": [
@@ -31,5 +30,9 @@
       "name": "English",
       "path": "lang/en.json"
     }
-  ]
+  ],
+  "url": "#{URL}#",
+  "manifest": "#{MANIFEST}#",
+  "download": "#{DOWNLOAD}#",
+  "changelog": "#{CHANGELOG}#"
 }
