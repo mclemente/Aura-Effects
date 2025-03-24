@@ -1,0 +1,35 @@
+{
+  "id": "auras",
+  "title": "Auras",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13.338"
+  },
+  "authors": [
+    {
+      "name": "Michael",
+      "url": "https://github.com/roth-michael",
+      "discord": "hi25114",
+      "flags": {}
+    }
+  ],
+  "esmodules": [
+    "scripts/auras.mjs"
+  ],
+  "styles": [
+    "styles/auras.css"
+  ],
+  "documentTypes": {
+    "ActiveEffect": {
+      "aura": {}
+    }
+  },
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ]
+}

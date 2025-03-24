@@ -1,0 +1,5 @@
+<section class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+    {{formGroup fields.distance value=source.system.distance rootId=rootId}}
+    {{formGroup fields.disposition value=source.system.disposition localize=true rootId=rootId}}
+    {{formGroup fields.collisionTypes value=source.system.collisionTypes localize=true rootId=rootId}}
+</section>

@@ -1,0 +1,34 @@
+{
+    "AURAS": {
+        "ACTIVEEFFECT": {
+            "Aura": {
+                "FIELDS": {
+                    "collisionTypes": {
+                        "hint": "Which types of wall should stop this aura?",
+                        "label": "Collision Types"
+                    },
+                    "disposition": {
+                        "Choices": {
+                            "Any": "Any",
+                            "Friendly": "Friendly",
+                            "Hostile": "Hostile"
+                        },
+                        "hint": "Which tokens should this affect?",
+                        "label": "Disposition"
+                    },
+                    "distance": {
+                        "hint": "How far does this aura extend?",
+                        "label": "Distance"
+                    }
+                }
+            }
+        },
+        "IsAura": "Is Aura",
+        "IsAuraHint": "Changing this value will immediately transform this effect into an Aura source effect, or back to its previous type.",
+        "NoActiveGM": "AURAS will not attempt to function without a GM logged in."
+    },
+    "EFFECT.TABS": {
+        "aura": "Aura"
+    },
+    "TYPES.ActiveEffect.auras.aura": "Aura"
+}
