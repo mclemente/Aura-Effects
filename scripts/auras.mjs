@@ -2,9 +2,13 @@ import AuraActiveEffectData from "./AuraActiveEffectData.mjs";
 import AuraActiveEffectSheet from "./AuraActiveEffectSheet.mjs";
 import { getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete } from "./helpers.mjs";
 import { applyAuraEffects, applyEffect, deleteAuraEffects, deleteEffects } from "./queries.mjs";
+import { registerSettings } from "./settings.mjs";
 
 // Track whether the "with no GM this no work" warning has been seen
 let seenWarning = false;
+
+// Object of keys (token ids) -> values (PIXI Graphics) for visualizing all auras
+const graphics = {}
 
 /**
  * Provided the arguments for the updateToken hook, checks if any effects on the token are aura source effects
@@ -27,7 +31,7 @@ async function updateToken(token, updates, options, userId) {
         return;
     }
     if (!token.actor) return;
-    if (!updates.x && !updates.y && !updates.elevation) return;
+    if (!('x' in updates) && !('y' in updates) && !('elevation' in updates)) return;
     const allEffects = token.actor.appliedEffects;
     const sourceEffects = allEffects.filter(e => e.type === "auras.aura");
     
@@ -121,9 +125,53 @@ function injectAuraCheckbox(app, html) {
     })
 }
 
+/**
+ * Shows aura bounds visualization for all relevant auras on the Token
+ * @param {Token} token     The Token being refreshed
+ */
+function refreshToken(token) {
+    if (!canvas.ready) return;
+    // If no visuals, destroy & remove any existing Graphics objects
+    if (game.settings.get("auras", "disableVisuals")) {
+        if (!foundry.utils.isEmpty(graphics)) {
+            for (const [gKey, gValue] of Object.entries(graphics)) {
+                gValue.destroy();
+                delete graphics[gKey];
+            }
+        }
+        return;
+    }
+    const sourceEffects = token.actor.appliedEffects.filter(e => (e.type === "auras.aura") && e.system.showRadius);
+    if (!sourceEffects.length) return;
+    let g = graphics[token.id];
+    if (!g) graphics[token.id] = g = new PIXI.Graphics();
+    g.clear();
+    if (!canvas.drawings.children.includes(g)) canvas.drawings.addChild(g);
+    for (const effect of sourceEffects) {
+        const { distance: radius, color, opacity } = effect.system;
+        
+        // This approximates the "from center of each occupied square" logic
+        const radiusAdjustment = Math.max(0, (token.document.width - 1) * canvas.grid.distance / 2);
+        
+        // Even though we're only strictly using distance, show a clean circle if Equidistant diagonals selected
+        // TODO: Maybe make this a setting, as it can _occasionally_ be misleading
+        const shape = (game.settings.get("core", "gridDiagonals") !== 1)
+            ? new PIXI.Polygon(canvas.grid.getCircle(token.center, radius + radiusAdjustment))
+            : new PIXI.Circle(token.center.x, token.center.y, (radius + radiusAdjustment) * canvas.grid.size / canvas.grid.distance);
+        let csp = ClockwiseSweepPolygon.create(token.center, {type: "universal", boundaryShapes: [shape]});
+        for (const collisionType of effect.system.collisionTypes) {
+            csp = ClockwiseSweepPolygon.create(token.center, {type: collisionType, boundaryShapes: [csp]});
+        }
+        g.beginFill(color?.toHTML() ?? "#FFFF00", opacity);
+        g.drawPolygon(...csp.points);
+        g.endFill();
+    }
+}
+
 function registerHooks() {
     Hooks.on("updateToken", updateToken);
     Hooks.on("renderActiveEffectConfig", injectAuraCheckbox);
+    Hooks.on("refreshToken", refreshToken);
 }
 
 function registerQueries() {
@@ -147,4 +195,5 @@ Hooks.once("init", () => {
     registerHooks();
     registerQueries();
     registerAuraType();
+    registerSettings();
 });

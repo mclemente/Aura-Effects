@@ -1,6 +1,6 @@
 import { DISPOSITIONS } from "./constants.mjs";
 
-const { NumberField, SetField, StringField } = foundry.data.fields;
+const { BooleanField, ColorField, NumberField, SetField, StringField } = foundry.data.fields;
 
 export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel {
     static LOCALIZATION_PREFIXES = ["AURAS.ACTIVEEFFECT.Aura"];
@@ -29,7 +29,15 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
                     [DISPOSITIONS.ANY]: "AURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Any",
                     [DISPOSITIONS.FRIENDLY]: "AURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Friendly"
                 }
-            })
+            }),
+            showRadius: new BooleanField({ initial: false }),
+            opacity: new NumberField({
+                min: 0,
+                max: 1,
+                step: 0.05,
+                initial: 0.25
+            }),
+            color: new ColorField()
         }
     }
 }

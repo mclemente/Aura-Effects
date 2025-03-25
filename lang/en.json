@@ -7,6 +7,9 @@
                         "hint": "Which types of wall should stop this aura?",
                         "label": "Collision Types"
                     },
+                    "color": {
+                        "label": "Color"
+                    },
                     "disposition": {
                         "Choices": {
                             "Any": "Any",
@@ -19,13 +22,27 @@
                     "distance": {
                         "hint": "How far does this aura extend?",
                         "label": "Distance"
+                    },
+                    "opacity": {
+                        "hint": "How opaque or transparent the aura should appear.",
+                        "label": "Opacity"
+                    },
+                    "showRadius": {
+                        "hint": "Aura borders will be displayed for every user.",
+                        "label": "Show Radius"
                     }
                 }
             }
         },
         "IsAura": "Is Aura",
         "IsAuraHint": "Changing this value will immediately transform this effect into an Aura source effect, or back to its previous type.",
-        "NoActiveGM": "AURAS will not attempt to function without a GM logged in."
+        "NoActiveGM": "AURAS will not attempt to function without a GM logged in.",
+        "SETTINGS": {
+            "DisableVisuals": {
+                "Hint": "Disable aura radius visualization entirely, regardless of effect settings.",
+                "Name": "Disable Visuals"
+            }
+        }
     },
     "EFFECT.TABS": {
         "aura": "Aura"
