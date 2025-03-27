@@ -6,6 +6,7 @@
 - Settings for whether an aura should apply to self or not
 - Added logic for the above - depends on a V13 issue being addressed
 - Added logic for effects being enabled/disabled, deleted, and to ensure old effects (from no-longer-active/existent auras) are properly wiped on token movement
+- Ensure auras are drawn _under_ any existing drawings
 
 ## Version 0.2.0
 - Added aura visualization

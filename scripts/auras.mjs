@@ -201,7 +201,7 @@ function refreshToken(token) {
     if (g && !g.geometry) g = null;
     if (!g) graphics[token.id] = g = new PIXI.Graphics();
     g.clear();
-    if (!canvas.drawings.children.includes(g)) canvas.drawings.addChild(g);
+    if (!canvas.drawings.children.includes(g)) canvas.drawings.addChildAt(g, 0);
     for (const effect of sourceEffects) {
         const { distance: radius, color, opacity } = effect.system;
         
