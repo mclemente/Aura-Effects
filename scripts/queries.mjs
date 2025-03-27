@@ -45,8 +45,10 @@ async function applyAuraEffects(actorToEffectsMap) {
                 const effect = fromUuidSync(uuid);
                 if (!effect) return null;
                 return foundry.utils.mergeObject(effect.toObject(), {
-                    origin: effect.origin ?? uuid,
-                    type: effect.getFlag("auras", "originalType") ?? "base"
+                    origin: uuid,
+                    type: effect.getFlag("auras", "originalType") ?? "base",
+                    transfer: false,
+                    "flags.auras.fromAura": true
                 });
             }).filter(e => e);
             return actor.createEmbeddedDocuments("ActiveEffect", effects);

@@ -1,20 +1,17 @@
+import { getExtendedParts, getExtendedTabs } from "./helpers.mjs";
+
 export default class AuraActiveEffectSheet extends foundry.applications.sheets.ActiveEffectConfig {
-    static PARTS = Object.fromEntries(Object.entries(super.PARTS).toSpliced(-1, 0, ["aura", { template: "modules/auras/templates/auraConfig.hbs" }]))
+    static PARTS = getExtendedParts(super.PARTS);
 
-    static TABS = {
-        sheet: {
-            ...super.TABS.sheet,
-            tabs: [
-                ...super.TABS.sheet.tabs,
-                { id: "aura", icon: "fa-solid fa-person-rays" }
-            ]
+    static TABS = getExtendedTabs(super.TABS);
+
+    async _preparePartContext(id, context) {
+        context = await super._preparePartContext(id, context);
+        if (id === "aura") {
+            context = foundry.utils.mergeObject(context, {
+                fields: this.document.system.schema.fields
+            }, { inplace: false });
         }
-    }
-
-    async _prepareContext(options) {
-        const context = foundry.utils.mergeObject(await super._prepareContext(options), {
-            fields: this.document.system.schema.fields
-        }, { inplace: false });
         return context;
-    }
+    };
 }

@@ -6,6 +6,7 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
     static LOCALIZATION_PREFIXES = ["AURAS.ACTIVEEFFECT.Aura"];
     static defineSchema() {
         return {
+            applyToSelf: new BooleanField({ initial: true }),
             collisionTypes: new SetField(new StringField({
                 choices: {
                     light: "WALL.FIELDS.light.label",
@@ -18,6 +19,7 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
             }), {
                 initial: ["move"],
             }),
+            color: new ColorField(),
             distance: new NumberField({
                 initial: 0,
                 min: 0
@@ -30,14 +32,21 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
                     [DISPOSITIONS.FRIENDLY]: "AURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Friendly"
                 }
             }),
-            showRadius: new BooleanField({ initial: false }),
             opacity: new NumberField({
                 min: 0,
                 max: 1,
                 step: 0.05,
                 initial: 0.25
             }),
-            color: new ColorField()
+            showRadius: new BooleanField({ initial: false })
         }
+    }
+
+    get isSuppressed() {
+        return !this.applyToSelf;
+    }
+
+    prepareDerivedData() {
+        super.prepareDerivedData();
     }
 }
