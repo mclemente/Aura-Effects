@@ -8,13 +8,13 @@
  * @returns {number}                            The distance
  */
 function getDistance(scene, a, b, { collisionTypes }) {
-    for (const collisionType of collisionTypes) {
-        if (CONFIG.Canvas.polygonBackends[collisionType]?.testCollision(a, b, {
-            type: collisionType,
-            mode: "any"
-        })) return Infinity;
-    }
-    return scene.grid.measurePath([a, b]).distance;
+  for (const collisionType of collisionTypes) {
+    if (CONFIG.Canvas.polygonBackends[collisionType]?.testCollision(a, b, {
+      type: collisionType,
+      mode: "any"
+    })) return Infinity;
+  }
+  return scene.grid.measurePath([a, b]).distance;
 }
 
 /**
@@ -25,28 +25,31 @@ function getDistance(scene, a, b, { collisionTypes }) {
  * @param {string[]} options.collisionTypes     Which collision types should result in Infinity distance
  * @returns {number}                            The minimum distance
  */
-function getTokenToTokenDistance(tokenA, tokenB, { collisionTypes=[] }) {
-    const scene = tokenA.parent;
-    // TODO: Similar lenience with gridless as gridded?
-    const tokenAOffsets = scene.grid.isGridless
-        ? [tokenA.getCenterPoint()]
-        : tokenA.getOccupiedGridSpaceOffsets();
-    const tokenBOffsets = scene.grid.isGridless
-        ? [tokenB.getCenterPoint()]
-        : tokenB.getOccupiedGridSpaceOffsets();
-    // TODO: Perhaps proper elevation ranges
-    const tokenAElevation = tokenA.elevation ?? 0;
-    const tokenBElevation = tokenB.elevation ?? 0;
-    // TODO: Maybe filter down comparisons instead of full 2D array
-    const distances = [];
-    for (const offsetA of tokenAOffsets) {
-        for (const offsetB of tokenBOffsets) {
-            const pointA = {...scene.grid.getCenterPoint(offsetA), elevation: tokenAElevation};
-            const pointB = {...scene.grid.getCenterPoint(offsetB), elevation: tokenBElevation};
-            distances.push(getDistance(scene, pointA, pointB, { collisionTypes }));
-        }
+function getTokenToTokenDistance(tokenA, tokenB, { collisionTypes = [] }) {
+  const scene = tokenA.parent;
+  // TODO: Similar lenience with gridless as gridded?
+  const tokenAOffsets = scene.grid.isGridless
+    ? [tokenA.getCenterPoint()]
+    : tokenA.getOccupiedGridSpaceOffsets();
+  const tokenBOffsets = scene.grid.isGridless
+    ? [tokenB.getCenterPoint()]
+    : tokenB.getOccupiedGridSpaceOffsets();
+  // TODO: Perhaps proper elevation ranges
+  const tokenAElevation = tokenA.elevation ?? 0;
+  const tokenBElevation = tokenB.elevation ?? 0;
+  // TODO: Maybe filter down comparisons instead of full 2D array
+  const distances = [];
+  for (const offsetA of tokenAOffsets) {
+    for (const offsetB of tokenBOffsets) {
+      const pointA = { ...scene.grid.getCenterPoint(offsetA), elevation: tokenAElevation };
+      const pointB = { ...scene.grid.getCenterPoint(offsetB), elevation: tokenBElevation };
+      distances.push(getDistance(scene, pointA, pointB, { collisionTypes }));
     }
-    return Math.min(...distances);
+  }
+  const externalAdjust = (scene.grid.distance / scene.grid.size) * (scene.grid.isGridless
+    ? tokenA.object.externalRadius
+    : 0);
+  return Math.min(...distances) - externalAdjust;
 }
 
 /**
@@ -56,10 +59,10 @@ function getTokenToTokenDistance(tokenA, tokenB, { collisionTypes=[] }) {
  * @returns {Set<Token>}                A set of Tokens which MAY be within range (necessarily containing the subset of Tokens which ARE within range)
  */
 function getGenerallyWithin(sourceToken, radius) {
-    const adjustedRadius = sourceToken.parent.grid.size * ((radius / sourceToken.parent.grid.distance) + sourceToken.width / 2);
-    const center = sourceToken.object.center;
-    const rect = new PIXI.Rectangle(center.x - adjustedRadius, center.y - adjustedRadius, 2 * adjustedRadius, 2 * adjustedRadius);
-    return sourceToken.layer.quadtree.getObjects(rect);
+  const adjustedRadius = sourceToken.parent.grid.size * ((radius / sourceToken.parent.grid.distance) + sourceToken.width / 2);
+  const center = sourceToken.object.center;
+  const rect = new PIXI.Rectangle(center.x - adjustedRadius, center.y - adjustedRadius, 2 * adjustedRadius, 2 * adjustedRadius);
+  return sourceToken.layer.quadtree.getObjects(rect);
 }
 
 /**
@@ -71,15 +74,15 @@ function getGenerallyWithin(sourceToken, radius) {
  * @param {string[]} options.collisionTypes     Which collision types should result in Infinity distance
  * @returns {TokenDocument[]}       The TokenDocuments within range
  */
-function getNearbyTokens(source, radius, { disposition=0, collisionTypes }) {
-    const putativeTokens = Array.from(getGenerallyWithin(source, radius))
-        .map(t => t.document)
-        .filter(t => {
-            if (disposition < 0) return (source.disposition * t.disposition) === -1;
-            if (disposition > 0) return (source.disposition === t.disposition);
-            return true;
-        });
-    return putativeTokens.filter(token => getTokenToTokenDistance(source, token, { collisionTypes }) <= radius);
+function getNearbyTokens(source, radius, { disposition = 0, collisionTypes }) {
+  const putativeTokens = Array.from(getGenerallyWithin(source, radius))
+    .map(t => t.document)
+    .filter(t => {
+      if (disposition < 0) return (source.disposition * t.disposition) === -1;
+      if (disposition > 0) return (source.disposition === t.disposition);
+      return true;
+    });
+  return putativeTokens.filter(token => getTokenToTokenDistance(source, token, { collisionTypes }) <= radius);
 }
 
 /**
@@ -88,12 +91,12 @@ function getNearbyTokens(source, radius, { disposition=0, collisionTypes }) {
  * @returns {boolean}               true if final movement is complete, else false
  */
 function isFinalMovementComplete(token) {
-    return (token.movement.state === "stopped") || (
-        !token.movement.pending?.distance
-        && token.movement.destination.x === token.x
-        && token.movement.destination.y === token.y
-        && token.movement.destination.elevation === token.elevation
-    );
+  return (token.movement.state === "stopped") || (
+    !token.movement.pending?.distance
+    && token.movement.destination.x === token.x
+    && token.movement.destination.y === token.y
+    && token.movement.destination.elevation === token.elevation
+  );
 }
 
 /**
@@ -102,14 +105,14 @@ function isFinalMovementComplete(token) {
  * @returns {[ActiveEffect[], ActiveEffect[]]}  The Arrays of aura effects (active, then inactive)
  */
 function getAllAuraEffects(actor) {
-    const activeAuras = [];
-    const inactiveAuras = [];
-    for (const effect of actor.allApplicableEffects()) {
-        if (effect.type !== "auras.aura") continue;
-        if (!effect.disabled && !effect.isSuppressed) activeAuras.push(effect);
-        else inactiveAuras.push(effect);
-    }
-    return [activeAuras, inactiveAuras];
+  const activeAuras = [];
+  const inactiveAuras = [];
+  for (const effect of actor.allApplicableEffects()) {
+    if (effect.type !== "auras.aura") continue;
+    if (!effect.disabled && !effect.isSuppressed) activeAuras.push(effect);
+    else inactiveAuras.push(effect);
+  }
+  return [activeAuras, inactiveAuras];
 }
 
 /**
@@ -119,7 +122,7 @@ function getAllAuraEffects(actor) {
  * @returns {Record<string, HandlebarsTemplatePart>}            The extended PARTS
  */
 function getExtendedParts(origParts) {
-    return Object.fromEntries(Object.entries(origParts).toSpliced(-1, 0, ["aura", { template: "modules/auras/templates/auraConfig.hbs" }]));
+  return Object.fromEntries(Object.entries(origParts).toSpliced(-1, 0, ["aura", { template: "modules/auras/templates/auraConfig.hbs" }]));
 }
 
 /**
@@ -128,22 +131,22 @@ function getExtendedParts(origParts) {
  * @returns {Record <string, ApplicationTabsConfiguration>}         The extended TABS
  */
 function getExtendedTabs(origTabs) {
-    return {
-        sheet: {
-            ...origTabs.sheet,
-            tabs: [
-                ...origTabs.sheet.tabs,
-                { id: "aura", icon: "fa-solid fa-person-rays" }
-            ]
-        }
-    };
+  return {
+    sheet: {
+      ...origTabs.sheet,
+      tabs: [
+        ...origTabs.sheet.tabs,
+        { id: "aura", icon: "fa-solid fa-person-rays" }
+      ]
+    }
+  };
 }
 
 export {
-    getNearbyTokens,
-    getTokenToTokenDistance,
-    isFinalMovementComplete,
-    getAllAuraEffects,
-    getExtendedParts,
-    getExtendedTabs
+  getNearbyTokens,
+  getTokenToTokenDistance,
+  isFinalMovementComplete,
+  getAllAuraEffects,
+  getExtendedParts,
+  getExtendedTabs
 };

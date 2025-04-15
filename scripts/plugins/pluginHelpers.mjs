@@ -1,9 +1,9 @@
 import replaceDAESheet from "./dae.mjs";
 
 function overrideSheets() {
-    replaceDAESheet();
+  replaceDAESheet();
 }
 
 export {
-    overrideSheets
+  overrideSheets
 };

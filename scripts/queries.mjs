@@ -7,12 +7,12 @@ const gmQueue = new foundry.utils.Semaphore();
  * @param {string[]} data.actorUuids    A list of UUIDs for each Actor that the effect should be added to
  * @returns {Promise<boolean>}          true
  */
-async function applyEffect({effectData, actorUuids}) {
-    await gmQueue.add(() => {
-        const targetActors = new Set(actorUuids.map(uuid => fromUuidSync(uuid)));
-        return Promise.all(targetActors.map(actor => actor.createEmbeddedDocuments("ActiveEffect", [effectData])));
-    });
-    return true;
+async function applyEffect({ effectData, actorUuids }) {
+  await gmQueue.add(() => {
+    const targetActors = new Set(actorUuids.map(uuid => fromUuidSync(uuid)));
+    return Promise.all(targetActors.map(actor => actor.createEmbeddedDocuments("ActiveEffect", [effectData])));
+  });
+  return true;
 }
 
 /**
@@ -21,12 +21,12 @@ async function applyEffect({effectData, actorUuids}) {
  * @param {string[]} data.effectUuids   A list of UUIDs for each Active Effect that should be deleted 
  * @returns {Promise<boolean>}          true
  */
-async function deleteEffects({effectUuids}) {
-    await gmQueue.add(() => {
-        const effects = new Set(effectUuids.map(uuid => fromUuidSync(uuid))).filter(e => e instanceof ActiveEffect);
-        return Promise.all(effects.map(e => e.delete()));
-    });
-    return true;
+async function deleteEffects({ effectUuids }) {
+  await gmQueue.add(() => {
+    const effects = new Set(effectUuids.map(uuid => fromUuidSync(uuid))).filter(e => e instanceof ActiveEffect);
+    return Promise.all(effects.map(e => e.delete()));
+  });
+  return true;
 }
 
 /**
@@ -36,25 +36,25 @@ async function deleteEffects({effectUuids}) {
  * @returns {Promise<boolean>}                          true
  */
 async function applyAuraEffects(actorToEffectsMap) {
-    await gmQueue.add(() => {
-        return Promise.all(Object.entries(actorToEffectsMap).map(([actorUuid, effectUuids]) => {
-            const actor = fromUuidSync(actorUuid);
-            const allEffects = actor.appliedEffects;
-            const effects = effectUuids.map(uuid => {
-                if (allEffects.some(e => e.origin === uuid)) return null;
-                const effect = fromUuidSync(uuid);
-                if (!effect) return null;
-                return foundry.utils.mergeObject(effect.toObject(), {
-                    origin: uuid,
-                    type: effect.getFlag("auras", "originalType") ?? "base",
-                    transfer: false,
-                    "flags.auras.fromAura": true
-                });
-            }).filter(e => e);
-            return actor.createEmbeddedDocuments("ActiveEffect", effects);
-        }));
-    });
-    return true;
+  await gmQueue.add(() => {
+    return Promise.all(Object.entries(actorToEffectsMap).map(([actorUuid, effectUuids]) => {
+      const actor = fromUuidSync(actorUuid);
+      const allEffects = actor.appliedEffects;
+      const effects = effectUuids.map(uuid => {
+        if (allEffects.some(e => e.origin === uuid)) return null;
+        const effect = fromUuidSync(uuid);
+        if (!effect) return null;
+        return foundry.utils.mergeObject(effect.toObject(), {
+          origin: uuid,
+          type: effect.getFlag("auras", "originalType") ?? "base",
+          transfer: false,
+          "flags.auras.fromAura": true
+        });
+      }).filter(e => e);
+      return actor.createEmbeddedDocuments("ActiveEffect", effects);
+    }));
+  });
+  return true;
 }
 
 /**
@@ -64,20 +64,20 @@ async function applyAuraEffects(actorToEffectsMap) {
  * @returns {Promise<boolean>}                          true
  */
 async function deleteAuraEffects(actorToEffectsMap) {
-    await gmQueue.add(() => {
-        return Promise.all(Object.entries(actorToEffectsMap).map(([actorUuid, effectUuids]) => {
-            const actor = fromUuidSync(actorUuid);
-            const allEffects = actor.appliedEffects;
-            const toDelete = allEffects.filter(e => effectUuids.includes(e.origin)).map(e => e.id);
-            return actor.deleteEmbeddedDocuments("ActiveEffect", toDelete);
-        }));
-    });
-    return true;
+  await gmQueue.add(() => {
+    return Promise.all(Object.entries(actorToEffectsMap).map(([actorUuid, effectUuids]) => {
+      const actor = fromUuidSync(actorUuid);
+      const allEffects = actor.appliedEffects;
+      const toDelete = allEffects.filter(e => effectUuids.includes(e.origin)).map(e => e.id);
+      return actor.deleteEmbeddedDocuments("ActiveEffect", toDelete);
+    }));
+  });
+  return true;
 }
 
 export {
-    applyAuraEffects,
-    applyEffect,
-    deleteAuraEffects,
-    deleteEffects
+  applyAuraEffects,
+  applyEffect,
+  deleteAuraEffects,
+  deleteEffects
 };

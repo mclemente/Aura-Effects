@@ -1,5 +1,10 @@
 # Auras Changelog
 
+## Version 0.4.0
+- Majorly overhauled visualization logic to instead use Point Effect Sources
+- "Better" apply-to-self logic, which should work properly now
+- Modified token-to-token distance calc on gridless to take external radius of source into account
+
 ## Version 0.3.0
 - Added the beginning of plugin behavior (so far just compatibility with DAE's custom sheet)
 - Setting for showing circles on gridded maps with "Exact" set as diagonal distances
