@@ -31,12 +31,19 @@
                         "hint": "How opaque or transparent the aura should appear.",
                         "label": "Opacity"
                     },
+                    "script": {
+                        "hint": "An expression which, if true (or blank) means the aura should apply.",
+                        "label": "Conditional Script"
+                    },
                     "showRadius": {
                         "hint": "Aura borders will be displayed for every user.",
                         "label": "Show Radius"
                     }
                 }
             }
+        },
+        "Errors": {
+            "ScriptError": "Error while running Auras Conditional Script for effect \"{effect}\" on actor \"{actor}\":\n{error}"
         },
         "IsAura": "Is Aura",
         "IsAuraHint": "Changing this value will immediately transform this effect into an Aura source effect, or back to its previous type.",

@@ -66,13 +66,38 @@ function getGenerallyWithin(sourceToken, radius) {
 }
 
 /**
+ * Execute the script on an aura active effect for a given token, returning whether said token should receive
+ * the effect or not
+ * @param {TokenDocument} sourceToken   The aura-emanating token
+ * @param {TokenDocument} token         The potential aura effect recipient token
+ * @param {ActiveEffect} effect         The aura effect in question
+ * @returns {boolean}                   true if effect should be applied, false if not
+ */
+function executeScript(sourceToken, token, effect) {
+  const actor = token.actor;
+  const script = effect.system.script ?? "";
+  if (!script?.trim()?.length) return true;
+  const toEvaluate = Function("actor", "token", "sourceToken", `return Boolean(${script});`);
+  try {
+    return toEvaluate.call(toEvaluate, actor, token.object, sourceToken.object);
+  } catch (error) {
+    console.error(game.i18n.format("AURAS.Errors.ScriptError", {
+      actor: sourceToken.actor.name,
+      effect: effect.name,
+      error
+    }));
+    return true;
+  }
+}
+
+/**
  * Get all tokens within a certain range of the source token
  * @param {TokenDocument} source                The source token from which to measure
  * @param {number} radius                       The radius of the grid-based circle to measure
  * @param {Object} options                      Additional options
  * @param {-1|0|1} options.disposition          The relative disposition of token that should be considered (-1 for hostile, 0 for all, 1 for friendly)
  * @param {string[]} options.collisionTypes     Which collision types should result in Infinity distance
- * @returns {TokenDocument[]}       The TokenDocuments within range
+ * @returns {TokenDocument[]}                   The TokenDocuments within range
  */
 function getNearbyTokens(source, radius, { disposition = 0, collisionTypes }) {
   const putativeTokens = Array.from(getGenerallyWithin(source, radius))
@@ -148,5 +173,6 @@ export {
   isFinalMovementComplete,
   getAllAuraEffects,
   getExtendedParts,
-  getExtendedTabs
+  getExtendedTabs,
+  executeScript
 };

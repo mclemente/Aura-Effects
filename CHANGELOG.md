@@ -1,5 +1,9 @@
 # Auras Changelog
 
+## Version 0.5.0
+- Added "Conditional Script" field
+- Moved "Is Aura" checkbox
+
 ## Version 0.4.0
 - Majorly overhauled visualization logic to instead use Point Effect Sources
 - "Better" apply-to-self logic, which should work properly now

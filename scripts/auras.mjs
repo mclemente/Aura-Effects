@@ -1,6 +1,6 @@
 import AuraActiveEffectData from "./AuraActiveEffectData.mjs";
 import AuraActiveEffectSheet from "./AuraActiveEffectSheet.mjs";
-import { getAllAuraEffects, getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete } from "./helpers.mjs";
+import { executeScript, getAllAuraEffects, getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete } from "./helpers.mjs";
 import { applyAuraEffects, applyEffect, deleteAuraEffects, deleteEffects } from "./queries.mjs";
 import { registerSettings } from "./settings.mjs";
 import { overrideSheets } from "./plugins/pluginHelpers.mjs";
@@ -56,7 +56,11 @@ async function updateToken(token, updates, options, userId) {
       transfer: false,
       "flags.auras.fromAura": true
     });
-    const postMoveRange = new Set(getNearbyTokens(token, radius, { disposition, collisionTypes }).map(t => t.actor))
+    const postMoveRange = new Set(
+      getNearbyTokens(token, radius, { disposition, collisionTypes })
+      .filter(t => executeScript(token, t, effect))
+      .map(t => t.actor)
+    );
     const toDelete = Array.from(preMoveRange.difference(postMoveRange)).map(a => a.effects.find(e => e.origin === effect.uuid)?.uuid);
 
     // Grab any lingering effects from now-inactive auras, too
@@ -82,8 +86,8 @@ async function updateToken(token, updates, options, userId) {
     if (!auraEffects.length) return [toRemove, toAdd];
 
     for (const currEffect of auraEffects) {
-      const distance = getTokenToTokenDistance(token, sourceToken, { collisionTypes: currEffect.system.collisionTypes });
-      if (currEffect.system.distance < distance) toRemove.push(currEffect);
+      const distance = getTokenToTokenDistance(sourceToken, token, { collisionTypes: currEffect.system.collisionTypes });
+      if ((currEffect.system.distance < distance) || !executeScript(sourceToken, token, currEffect)) toRemove.push(currEffect);
       else toAdd.push(currEffect);
     }
 
@@ -190,7 +194,7 @@ function injectAuraCheckbox(app, html) {
   }, {
     value: app.document.type === "auras.aura"
   });
-  html.querySelector("[data-tab=details] > .form-group:last-of-type")?.after(element);
+  html.querySelector("[data-tab=details] > .form-group.statuses")?.before(element);
   element.addEventListener("change", () => {
     const currType = app.document.type;
     const updates = app._processFormData(null, app.form, new foundry.applications.ux.FormDataExtended(app.form));
