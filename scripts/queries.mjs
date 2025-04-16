@@ -1,21 +1,6 @@
 const gmQueue = new foundry.utils.Semaphore();
 
 /**
- * Create an Active Effect (from the provided effect data) on each Actor (from the provided Actor UUIDs) 
- * @param {Object} data                 Query input data
- * @param {Object} data.effectData      The Active Effect, as an object, to be added to each Actor
- * @param {string[]} data.actorUuids    A list of UUIDs for each Actor that the effect should be added to
- * @returns {Promise<boolean>}          true
- */
-async function applyEffect({ effectData, actorUuids }) {
-  await gmQueue.add(() => {
-    const targetActors = new Set(actorUuids.map(uuid => fromUuidSync(uuid)));
-    return Promise.all(targetActors.map(actor => actor.createEmbeddedDocuments("ActiveEffect", [effectData])));
-  });
-  return true;
-}
-
-/**
  * Delete all Active Effects whose UUIDs are provided (ignoring any UUIDs which do NOT correspond to Active Effects)
  * @param {Object} data                 Query input data
  * @param {string[]} data.effectUuids   A list of UUIDs for each Active Effect that should be deleted 
@@ -44,12 +29,23 @@ async function applyAuraEffects(actorToEffectsMap) {
         if (allEffects.some(e => e.origin === uuid)) return null;
         const effect = fromUuidSync(uuid);
         if (!effect) return null;
-        return foundry.utils.mergeObject(effect.toObject(), {
+        const effectData = foundry.utils.mergeObject(effect.toObject(), {
           origin: uuid,
           type: effect.getFlag("auras", "originalType") ?? "base",
           transfer: false,
           "flags.auras.fromAura": true
         });
+        if (game.modules.get("dae")?.active) {
+          for (const change of effectData.changes) {
+            change.value = Roll.replaceFormulaData(change.value, effect.parent?.getRollData?.());
+            change.value = change.value.replaceAll("##", "@");
+          }
+        } else if (effect.system.evaluatePreApply) {
+          for (const change of effectData.changes) {
+            change.value = Roll.replaceFormulaData(change.value, effect.parent?.getRollData?.());
+          }
+        }
+        return effectData;
       }).filter(e => e);
       return actor.createEmbeddedDocuments("ActiveEffect", effects);
     }));
@@ -77,7 +73,6 @@ async function deleteAuraEffects(actorToEffectsMap) {
 
 export {
   applyAuraEffects,
-  applyEffect,
   deleteAuraEffects,
   deleteEffects
 };

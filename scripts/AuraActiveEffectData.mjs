@@ -32,14 +32,15 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
           [DISPOSITIONS.FRIENDLY]: "AURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Friendly"
         }
       }),
+      evaluatePreApply: new BooleanField({ initial: false }),
       opacity: new NumberField({
         min: 0,
         max: 1,
         step: 0.05,
         initial: 0.25
       }),
-      showRadius: new BooleanField({ initial: false }),
-      script: new JavaScriptField()
+      script: new JavaScriptField(),
+      showRadius: new BooleanField({ initial: false })
     }
   }
 

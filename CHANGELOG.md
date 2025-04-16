@@ -1,5 +1,9 @@
 # Auras Changelog
 
+## Version 0.6.0
+- Added "Evaluate Changes Early" field
+- Ensured (or attempted to ensure) that DAE's rules for value replacement are adhered to, if active
+
 ## Version 0.5.0
 - Added "Conditional Script" field
 - Moved "Is Aura" checkbox

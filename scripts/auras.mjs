@@ -1,7 +1,7 @@
 import AuraActiveEffectData from "./AuraActiveEffectData.mjs";
 import AuraActiveEffectSheet from "./AuraActiveEffectSheet.mjs";
 import { executeScript, getAllAuraEffects, getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete } from "./helpers.mjs";
-import { applyAuraEffects, applyEffect, deleteAuraEffects, deleteEffects } from "./queries.mjs";
+import { applyAuraEffects, deleteAuraEffects, deleteEffects } from "./queries.mjs";
 import { registerSettings } from "./settings.mjs";
 import { overrideSheets } from "./plugins/pluginHelpers.mjs";
 import { canvasInit, destroyToken, drawGridLayer, drawToken, refreshToken, updateAllVisualizations, updateTokenVisualization } from "./auraVisualization.mjs";
@@ -46,16 +46,11 @@ async function updateToken(token, updates, options, userId) {
 
   // Get end-of-movement in-range tokens for each aura source effect, removing effects which should be removed,
   // adding effects which should be added IF this is the final segment of movement
+  const actorToEffectsMap = {};
   for (const effect of activeSourceEffects) {
     const { distance: radius, disposition, collisionTypes } = effect.system;
     if (!radius) continue;
     const preMoveRange = preMoveRanges[effect.uuid];
-    const effectData = foundry.utils.mergeObject(effect.toObject(), {
-      origin: effect.uuid,
-      type: effect.getFlag("auras", "originalType") ?? "base",
-      transfer: false,
-      "flags.auras.fromAura": true
-    });
     const postMoveRange = new Set(
       getNearbyTokens(token, radius, { disposition, collisionTypes })
       .filter(t => executeScript(token, t, effect))
@@ -68,8 +63,13 @@ async function updateToken(token, updates, options, userId) {
     await activeGM.query("auras.deleteEffects", { effectUuids: toDelete.concat(additionalDeletion) })
     if (isFinalMovementComplete(token)) {
       const toAddTo = Array.from(postMoveRange.filter(a => (a !== token.actor) && !a?.effects.find(e => e.origin === effect.uuid))).map(a => a?.uuid);
-      await activeGM.query("auras.applyEffect", { effectData, actorUuids: toAddTo });
+      for (const actorUuid of toAddTo) {
+        actorToEffectsMap[actorUuid] = (actorToEffectsMap[actorUuid] ?? []).concat(effect.uuid)
+      }
     }
+  }
+  if (isFinalMovementComplete(token)) {
+    await activeGM.query("auras.applyAuraEffects", actorToEffectsMap);
   }
 
   // Get all aura source effects on the scene, split into "actor shouldn't have" and "actor should have"
@@ -145,14 +145,10 @@ async function updateActiveEffect(effect, updates, options, userId) {
     // TODO: Maybe refactor this logic so that it can be utilized in the main updateToken function
     const { distance: radius, disposition, collisionTypes } = effect.system;
     if (!radius) return;
-    const effectData = foundry.utils.mergeObject(effect.toObject(), {
-      origin: effect.uuid,
-      type: effect.getFlag("auras", "originalType") ?? "base",
-      transfer: false
-    });
     const tokensInRange = getNearbyTokens(token, radius, { disposition, collisionTypes }).map(t => t.actor)
     const toAddTo = tokensInRange.filter(a => (a !== token.actor) && !a?.effects.find(e => e.origin === effect.uuid)).map(a => a?.uuid);
-    await activeGM.query("auras.applyEffect", { effectData, actorUuids: toAddTo });
+    const actorToEffectsMap = Object.fromEntries(toAddTo.map(actorUuid => [actorUuid, effect.uuid]));
+    await activeGM.query("auras.applyAuraEffects", actorToEffectsMap);
   }
 }
 
@@ -229,7 +225,6 @@ function registerHooks() {
 }
 
 function registerQueries() {
-  CONFIG.queries["auras.applyEffect"] = applyEffect;
   CONFIG.queries["auras.deleteEffects"] = deleteEffects;
   CONFIG.queries["auras.applyAuraEffects"] = applyAuraEffects;
   CONFIG.queries["auras.deleteAuraEffects"] = deleteAuraEffects;

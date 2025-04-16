@@ -27,6 +27,10 @@
                         "hint": "How far does this aura extend?",
                         "label": "Distance"
                     },
+                    "evaluatePreApply": {
+                        "hint": "Should effect change values be evaluated prior to effect application, or remain unevaluated when applied?",
+                        "label": "Evaluate Changes Early"
+                    },
                     "opacity": {
                         "hint": "How opaque or transparent the aura should appear.",
                         "label": "Opacity"
