@@ -1,5 +1,8 @@
 # Auras Changelog
 
+## Version 0.6.1
+- Auras tab is now scrollable
+
 ## Version 0.6.0
 - Added "Evaluate Changes Early" field
 - Ensured (or attempted to ensure) that DAE's rules for value replacement are adhered to, if active
