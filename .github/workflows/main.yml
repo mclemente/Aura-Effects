@@ -41,12 +41,12 @@ jobs:
           zip --recurse-paths \
           ./module.zip        \
           lang                \
+          packs               \
           scripts             \
           styles              \
           templates           \
           LICENSE             \
-          module.json         \
-          README.md
+          module.json
 
       - name: Update Release with Files
         id: create_version_release
