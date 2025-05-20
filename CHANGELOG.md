@@ -1,7 +1,7 @@
 # Aura Effects Changelog
 
 ## Version 1.0.0
-- Welcome to those coming from Active Auras. There is an included migration script (user-triggered) which aims to automatically convert effects to the new format. Key differences from Active Auras:
+- Welcome to those coming from Active Auras. There is an included migration script (user-triggered, found in the Aura Effects Macros compendium) which aims to automatically convert effects to the new format. Key differences from Active Auras:
   - Auras can now be visualized! This can be disabled globally per-client, and enabled/disabled per-Aura as well.
   - Auras will now always respect whatever grid diagonal settings are selected, and will compute vertical distance using the same rules.
   - You can now select (unless you are using a module such is DAE, which forces this behavior) to have an effect evaluate its values using the _source_ actor's roll data. This allows you to implement, for instance, 5e's "Aura of Protection," which grants a bonus to saves equal to the _source_'s charisma modifier.
@@ -10,6 +10,10 @@
   - System-specific options (such as alignment for dnd5e and wildcard/extra for swade) have been dropped. If you used these, the migration script should pick this up and populate the "Conditional Script" field with the appropriate implementation of what you had selected.
   - Combat-only auras are now per-aura, rather than a global setting. Performance, in general, should be greatly enhanced.
   - Custom evaluation (conditional script) has undergone two minor changes: `system` is no longer in the scope (simply use `actor.system` instead), and `auraEntity` has been renamed to `sourceToken`. The latter renaming should be automatically handled via migration script.
+- Added no-stacking & best formula fields, along with logic for ensuring only the "best" aura applies
+- Added combat-only and disable on hidden fields
+- Added a name override so that the applied effect can have a different name from the source effect
+- Added a compendium of Macros (currently, only contains the migration script from Active Auras to Aura Effects)
 
 ## Version 0.6.1
 - Auras tab is now scrollable
