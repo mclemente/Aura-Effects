@@ -7,34 +7,48 @@ const gmQueue = new foundry.utils.Semaphore();
  * @returns {Promise<boolean>}          true
  */
 async function deleteEffects({ effectUuids }) {
+  const disableAnimation = game.settings.get("ActiveAuras", "disableScrollingText");
   await gmQueue.add(() => {
     const effects = new Set(effectUuids.map(uuid => fromUuidSync(uuid))).filter(e => e instanceof ActiveEffect);
-    return Promise.all(effects.map(e => e.delete()));
+    return Promise.all(effects.map(e => e.delete({ animate: !disableAnimation })));
   });
   return true;
 }
 
 /**
  * Create potentially multiple Active Effects on potentially multiple Actors, modifying the provided effects as
- * necessary for "aura effect" treatment and skipping effects which already exist
+ * necessary for "aura effect" treatment and skipping effects which already exist; also choosing best of multiple
+ * if a non-stacking effect, so that only one is applied
  * @param {Object<string, string[]>} actorToEffectsMap  An object with Actor UUIDs as keys, and lists of ActiveEffect UUIDs as values
  * @returns {Promise<boolean>}                          true
  */
 async function applyAuraEffects(actorToEffectsMap) {
+  const disableAnimation = game.settings.get("ActiveAuras", "disableScrollingText");
   await gmQueue.add(() => {
     return Promise.all(Object.entries(actorToEffectsMap).map(([actorUuid, effectUuids]) => {
       const actor = fromUuidSync(actorUuid);
       const allEffects = actor.appliedEffects;
+      const effectsToDelete = [];
       const effects = effectUuids.map(uuid => {
         if (allEffects.some(e => e.origin === uuid)) return null;
         const effect = fromUuidSync(uuid);
         if (!effect) return null;
         const effectData = foundry.utils.mergeObject(effect.toObject(), {
+          name: effect.system.overrideName?.trim() || effect.name,
           origin: uuid,
-          type: effect.getFlag("auras", "originalType") ?? "base",
+          type: effect.getFlag("ActiveAuras", "originalType") ?? "base",
           transfer: false,
-          "flags.auras.fromAura": true
+          "flags.ActiveAuras.fromAura": true
         });
+        if (!effect.system.canStack) {
+          const bestValue = new Roll(effect.system.bestFormula.trim() || "0", effect.parent?.getRollData?.()).evaluateSync().total;
+          foundry.utils.setProperty(effectData, "flags.ActiveAuras.bestValue", bestValue);
+          const existingEffect = allEffects.find(e => e.flags?.ActiveAuras?.fromAura && e.name === effectData.name);
+          if (existingEffect) {
+            if ((existingEffect.flags.ActiveAuras.bestValue ?? 0) >= bestValue) return null;
+            effectsToDelete.push(existingEffect.id);
+          }
+        }
         if (game.modules.get("dae")?.active) {
           for (const change of effectData.changes) {
             change.value = Roll.replaceFormulaData(change.value, effect.parent?.getRollData?.());
@@ -46,26 +60,17 @@ async function applyAuraEffects(actorToEffectsMap) {
           }
         }
         return effectData;
-      }).filter(e => e);
-      return actor.createEmbeddedDocuments("ActiveEffect", effects);
-    }));
-  });
-  return true;
-}
-
-/**
- * Delete potentially multiple aura-based Active Effects on potentially multiple Actors, using provided effects as 
- * "source" effects whose children should be deleted and skipping effects which don't exist
- * @param {Object<string, string[]>} actorToEffectsMap  An object with Actor UUIDs as keys, and lists of ActiveEffect UUIDs as values
- * @returns {Promise<boolean>}                          true
- */
-async function deleteAuraEffects(actorToEffectsMap) {
-  await gmQueue.add(() => {
-    return Promise.all(Object.entries(actorToEffectsMap).map(([actorUuid, effectUuids]) => {
-      const actor = fromUuidSync(actorUuid);
-      const allEffects = actor.appliedEffects;
-      const toDelete = allEffects.filter(e => effectUuids.includes(e.origin)).map(e => e.id);
-      return actor.deleteEmbeddedDocuments("ActiveEffect", toDelete);
+      }).filter(e => e).reduce((acc, effect) => {
+        const existing = acc.find(e => e.name === effect.name);
+        const existingBestValue = existing?.flags.ActiveAuras.bestValue;
+        if (existingBestValue === undefined) return [...acc, effect];
+        const currBestValue = effect.flags.ActiveAuras.bestValue;
+        if (currBestValue > existingBestValue) acc.findSplice(e => e === existing, effect);
+        return acc;
+      }, []);
+      return actor.deleteEmbeddedDocuments("ActiveEffect", effectsToDelete, { animate: !disableAnimation }).then(() => 
+        actor.createEmbeddedDocuments("ActiveEffect", effects, { animate: !disableAnimation })
+      );
     }));
   });
   return true;
@@ -73,6 +78,5 @@ async function deleteAuraEffects(actorToEffectsMap) {
 
 export {
   applyAuraEffects,
-  deleteAuraEffects,
   deleteEffects
 };

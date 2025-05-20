@@ -1,3 +1,5 @@
+import { DISPOSITIONS } from "./constants.mjs";
+
 /**
  * Get 3D distance in grid units, returning Infinity if any provided collision types would block the ray
  * @param {Scene} scene                         The scene to measure on
@@ -75,13 +77,14 @@ function getGenerallyWithin(sourceToken, radius) {
  */
 function executeScript(sourceToken, token, effect) {
   const actor = token.actor;
+  const rollData = actor.getRollData();
   const script = effect.system.script ?? "";
   if (!script?.trim()?.length) return true;
-  const toEvaluate = Function("actor", "token", "sourceToken", `return Boolean(${script});`);
+  const toEvaluate = Function("actor", "token", "sourceToken", "rollData", `return Boolean(${script});`);
   try {
-    return toEvaluate.call(toEvaluate, actor, token.object, sourceToken.object);
+    return toEvaluate.call(toEvaluate, actor, token.object, sourceToken.object, rollData);
   } catch (error) {
-    console.error(game.i18n.format("AURAS.Errors.ScriptError", {
+    console.error(game.i18n.format("ACTIVEAURAS.Errors.ScriptError", {
       actor: sourceToken.actor.name,
       effect: effect.name,
       error
@@ -133,11 +136,67 @@ function getAllAuraEffects(actor) {
   const activeAuras = [];
   const inactiveAuras = [];
   for (const effect of actor.allApplicableEffects()) {
-    if (effect.type !== "auras.aura") continue;
+    if (effect.type !== "ActiveAuras.aura") continue;
     if (!effect.disabled && !effect.isSuppressed) activeAuras.push(effect);
     else inactiveAuras.push(effect);
   }
   return [activeAuras, inactiveAuras];
+}
+
+/**
+ * Remove specified auras, ensuring that any non-stacking auras perform a search for the "next-best"
+ * and apply it, if present
+ * @param {ActiveEffect[]} effects  The effects which will be removed
+ * @param {Scene} scene             The scene on which to perform any necessary logic
+ */
+async function removeAndReplaceAuras(effects, scene) {
+  const activeGM = game.users.activeGM;
+
+  // Get map of effect name -> tokens removed from (only for non-stacking effects)
+  const effectToRemovedMap = effects.reduce((acc, effect) => {
+    if (!effect) return acc;
+    acc[effect.name] ??= [];
+    acc[effect.name].push(...effect.parent.getActiveTokens(false, true));
+    return acc;
+  }, {});
+
+  // Remove effects
+  await activeGM.query("ActiveAuras.deleteEffects", { effectUuids: effects.map(e => e.uuid) });
+
+  // Get all on-scene aura sources for the effects just deleted, sort by best, apply to tokens as possible
+  const newBestApplyMap = {};
+  function getSourceEffect(token, effectName) {
+    return token.actor.appliedEffects.find(e => (e.type === "ActiveAuras.aura") && ((e.system.overrideName.trim() || e.name) === effectName));
+  }
+  Object.keys(effectToRemovedMap).forEach(effectName => {
+    const allEmitting = scene.tokens.filter(t => getAllAuraEffects(t.actor)[0].some(e => (e.system.overrideName.trim() || e.name) === effectName));
+    allEmitting.sort((a, b) => {
+      const effectA = getSourceEffect(a, effectName);
+      const effectB = getSourceEffect(b, effectName);
+      if (!effectA) return 1;
+      if (!effectB) return -1;
+      const bestFormulaA = effectA.system.bestFormula?.trim();
+      const bestFormulaB = effectB.system.bestFormula?.trim();
+      if (!bestFormulaA) return 1;
+      if (!bestFormulaB) return -1;
+      const totalA = new Roll(bestFormulaA, a.actor.getRollData()).evaluateSync().total;
+      const totalB = new Roll(bestFormulaB, b.actor.getRollData()).evaluateSync().total;
+      return totalB - totalA;
+    });
+
+    for (const targetToken of effectToRemovedMap[effectName]) {
+      for (const sourceToken of allEmitting) {
+        const effect = getSourceEffect(sourceToken, effectName);
+        if (!effect) continue;
+        const distance = getTokenToTokenDistance(sourceToken, targetToken, { collisionTypes: effect.system.collisionTypes });
+        if ((effect.system.distance < distance) || !executeScript(sourceToken, targetToken, effect)) continue;
+        newBestApplyMap[targetToken.actor.uuid] ??= [];
+        newBestApplyMap[targetToken.actor.uuid].push(effect.uuid);
+        break;
+      }
+    }
+  });
+  return activeGM.query("ActiveAuras.applyAuraEffects", newBestApplyMap);
 }
 
 /**
@@ -147,7 +206,7 @@ function getAllAuraEffects(actor) {
  * @returns {Record<string, HandlebarsTemplatePart>}            The extended PARTS
  */
 function getExtendedParts(origParts) {
-  return Object.fromEntries(Object.entries(origParts).toSpliced(-1, 0, ["aura", { template: "modules/auras/templates/auraConfig.hbs" }]));
+  return Object.fromEntries(Object.entries(origParts).toSpliced(-1, 0, ["aura", { template: "modules/ActiveAuras/templates/auraConfig.hbs" }]));
 }
 
 /**
@@ -174,5 +233,6 @@ export {
   getAllAuraEffects,
   getExtendedParts,
   getExtendedTabs,
-  executeScript
+  executeScript,
+  removeAndReplaceAuras
 };

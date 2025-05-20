@@ -1,18 +1,34 @@
 {
-    "AURAS": {
+    "ACTIVEAURAS": {
         "ACTIVEEFFECT": {
             "Aura": {
                 "FIELDS": {
                     "applyToSelf": {
-                        "hint": "Should this aura apply to the source?",
+                        "hint": "If enabled this aura will apply to the source token.",
                         "label": "Apply to Self"
                     },
+                    "bestFormula": {
+                        "hint": "A formula to evaluate with the source actor's roll data to determine the most powerful effect in a non-stacking situation. If left blank, first-come, first-serve.",
+                        "label": "\"Best\" Formula"
+                    },
+                    "canStack": {
+                        "hint": "If enabled, other auras of the same name can apply at the same time to any applicable tokens.",
+                        "label": "Aura Can Stack"
+                    },
                     "collisionTypes": {
-                        "hint": "Which types of wall should stop this aura?",
+                        "hint": "Which, if any, types of wall will stop this aura.",
                         "label": "Collision Types"
                     },
                     "color": {
                         "label": "Color"
+                    },
+                    "combatOnly": {
+                        "hint": "If enabled, this effect will be suppressed outside of combat.",
+                        "label": "Combat Only"
+                    },
+                    "disableOnHidden": {
+                        "hint": "If enabled, this effect will be suppressed while the token it is on is hidden.",
+                        "label": "Disable While Hidden"
                     },
                     "disposition": {
                         "Choices": {
@@ -20,39 +36,53 @@
                             "Friendly": "Friendly",
                             "Hostile": "Hostile"
                         },
-                        "hint": "Which tokens should this affect?",
+                        "hint": "Which token dispositions (relative to the source token) this aura will apply to.",
                         "label": "Disposition"
                     },
                     "distance": {
-                        "hint": "How far does this aura extend?",
+                        "hint": "Specifies the radius that this aura extends to.",
                         "label": "Distance"
                     },
                     "evaluatePreApply": {
-                        "hint": "Should effect change values be evaluated prior to effect application, or remain unevaluated when applied?",
+                        "hint": "If enabled, change values will be evaluated prior to effect application, using the source actor's roll data if necessary.",
                         "label": "Evaluate Changes Early"
                     },
                     "opacity": {
                         "hint": "How opaque or transparent the aura should appear.",
                         "label": "Opacity"
                     },
+                    "overrideName": {
+                        "hint": "What name the applied effect should have (leave blank to use base effect's name).",
+                        "label": "Effect Name"
+                    },
                     "script": {
                         "hint": "An expression which, if true (or blank) means the aura should apply.",
                         "label": "Conditional Script"
                     },
                     "showRadius": {
-                        "hint": "Aura borders will be displayed for every user.",
+                        "hint": "Whether to display aura borders for every user.",
                         "label": "Show Radius"
                     }
                 }
             }
         },
+        "ConvertToAura": "Convert to Aura",
+        "ConvertToAuraHint": "This will immediately transform this effect into an Aura source effect.",
+        "ConvertToNormal": "Revert to Normal Effect",
+        "ConvertToNormalHint": "This will immediately revert this effect to its original type; aura settings will be lost.",
         "Errors": {
-            "ScriptError": "Error while running Auras Conditional Script for effect \"{effect}\" on actor \"{actor}\":\n{error}"
+            "ScriptError": "Error while running Active Auras Conditional Script for effect \"{effect}\" on actor \"{actor}\":\n{error}"
         },
-        "IsAura": "Is Aura",
-        "IsAuraHint": "Changing this value will immediately transform this effect into an Aura source effect, or back to its previous type.",
-        "NoActiveGM": "AURAS will not attempt to function without a GM logged in.",
+        "Migrations": {
+            "AllCompleted": "All Active Auras migrations completed!",
+            "Beginning": "Beginning Active Auras migrations..."
+        },
+        "NoActiveGM": "Active Auras will not attempt to function without a GM logged in.",
         "SETTINGS": {
+            "DisableScrollingText": {
+                "Hint": "Disable the scrolling text that appears when adding/removing aura-caused effects to a token's actor.",
+                "Name": "Disable Scrolling Text for Aura Effects"
+            },
             "DisableVisuals": {
                 "Hint": "Disable aura radius visualization entirely, regardless of effect settings.",
                 "Name": "Disable Visuals"
@@ -67,5 +97,5 @@
     "EFFECT.TABS": {
         "aura": "Aura"
     },
-    "TYPES.ActiveEffect.auras.aura": "Aura"
+    "TYPES.ActiveEffect.ActiveAuras.aura": "Aura"
 }

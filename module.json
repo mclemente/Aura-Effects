@@ -1,10 +1,10 @@
 {
-  "id": "auras",
-  "title": "Auras",
+  "id": "ActiveAuras",
+  "title": "Active Auras",
   "version": "#{VERSION}#",
   "compatibility": {
     "minimum": "13",
-    "verified": "13.338"
+    "verified": "13.342"
   },
   "authors": [
     {

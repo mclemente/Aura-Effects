@@ -3,10 +3,12 @@ import { DISPOSITIONS } from "./constants.mjs";
 const { BooleanField, ColorField, JavaScriptField, NumberField, SetField, StringField } = foundry.data.fields;
 
 export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel {
-  static LOCALIZATION_PREFIXES = ["AURAS.ACTIVEEFFECT.Aura"];
+  static LOCALIZATION_PREFIXES = ["ACTIVEAURAS.ACTIVEEFFECT.Aura"];
   static defineSchema() {
     return {
       applyToSelf: new BooleanField({ initial: true }),
+      bestFormula: new StringField({ initial: "" }),
+      canStack: new BooleanField({ initial: false }),
       collisionTypes: new SetField(new StringField({
         choices: {
           light: "WALL.FIELDS.light.label",
@@ -20,6 +22,8 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
         initial: ["move"],
       }),
       color: new ColorField(),
+      combatOnly: new BooleanField({ initial: false }),
+      disableOnHidden: new BooleanField({ initial: true }),
       distance: new NumberField({
         initial: 0,
         min: 0
@@ -27,9 +31,9 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
       disposition: new NumberField({
         initial: DISPOSITIONS.ANY,
         choices: {
-          [DISPOSITIONS.HOSTILE]: "AURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Hostile",
-          [DISPOSITIONS.ANY]: "AURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Any",
-          [DISPOSITIONS.FRIENDLY]: "AURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Friendly"
+          [DISPOSITIONS.HOSTILE]: "ACTIVEAURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Hostile",
+          [DISPOSITIONS.ANY]: "ACTIVEAURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Any",
+          [DISPOSITIONS.FRIENDLY]: "ACTIVEAURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Friendly"
         }
       }),
       evaluatePreApply: new BooleanField({ initial: false }),
@@ -39,9 +43,20 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
         step: 0.05,
         initial: 0.25
       }),
+      overrideName: new StringField({ initial: '' }),
       script: new JavaScriptField(),
       showRadius: new BooleanField({ initial: false })
     }
+  }
+
+  get isSuppressed() {
+    if (this.combatOnly && !game.combat?.active) return true;
+    if (this.disableOnHidden) {
+      let actor = this.parent.parent;
+      if (actor instanceof Item) actor = actor.actor;
+      if (actor?.getActiveTokens(false, true)[0]?.hidden) return true;
+    }
+    return false;
   }
 
   prepareDerivedData() {
