@@ -6,8 +6,8 @@ export async function migrate() {
   let existingAlert;
   for (const [version, migration] of sortedMigrations) {
     if (!foundry.utils.isNewerVersion(version, migrationVersion)) continue;
-    if (!existingAlert) existingAlert = ui.notifications.info("AURAEFFECTS.Migrations.Beginning", { permanent: true, localize: true });
-    await migration();
+    if (migration.alert && !existingAlert) existingAlert = ui.notifications.info("AURAEFFECTS.Migrations.Beginning", { permanent: true, localize: true });
+    await migration.migrateFunction();
     await game.settings.set("auraeffects", "migrationVersion", version);
   }
   if (existingAlert) {
@@ -15,4 +15,17 @@ export async function migrate() {
     ui.notifications.success("AURAEFFECTS.Migrations.AllCompleted", { localize: true });
   }
 }
-const migrations = {}
+const migrations = {
+  "1.0.0": {
+    alert: false,
+    migrateFunction: async () => {
+      ChatMessage.create({
+        speaker: {
+          alias: "Aura Effects"
+        },
+        whisper: [game.user],
+        content: game.i18n.localize("AURAEFFECTS.Migrations.ActiveAurasChatMessage")
+      })
+    }
+  }
+}

@@ -75,6 +75,7 @@
         },
         "Migrations": {
             "ActiveAurasBegin": "Beginning migration from Active Auras to Aura Effects...",
+            "ActiveAurasChatMessage": "Thank you for installing Aura Effects! If you previously used Active Auras, there is a migration script to convert all of your Active Aura effects into Aura Effects. You can find it at any time in the Aura Effects compendium folder, or execute it by clicking here: @UUID[Compendium.auraeffects.AuraEffectsMacros.Macro.NeaP6NSy6TzLQuKS]{Migrate from Active Auras}",
             "ActiveAurasComplete": "Migration from Active Auras to Aura Effects now complete!",
             "AllCompleted": "All Aura Effects migrations completed!",
             "Beginning": "Beginning Aura Effects migrations..."
