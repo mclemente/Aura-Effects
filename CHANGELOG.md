@@ -4,7 +4,7 @@
 - Welcome to those coming from Active Auras. There is an included migration script (user-triggered, found in the Aura Effects Macros compendium) which aims to automatically convert effects to the new format. Key differences from Active Auras:
   - Auras can now be visualized! This can be disabled globally per-client, and enabled/disabled per-Aura as well.
   - Auras will now always respect whatever grid diagonal settings are selected, and will compute vertical distance using the same rules.
-  - You can now select (unless you are using a module such is DAE, which forces this behavior) to have an effect evaluate its values using the _source_ actor's roll data. This allows you to implement, for instance, 5e's "Aura of Protection," which grants a bonus to saves equal to the _source_'s charisma modifier.
+  - You can now select to _not_ evaluate effect change values pre-application (unless you are using a module such as DAE, which forces that behavior). This means you can have an aura grant, for instance, a bonus to each recipient's attacks equal to _the recipient's_ strength score.
   - Aura source effects are now a new subtype of Active Effects. You can turn an Active Effect into an Aura Active Effect on the "Details" tab of the effect configuration. This will re-open the window with a new "Aura" tab.
   - Support for Templates & Drawings calling macros has been dropped; with the existence of Scene Regions, this functionality should no longer be necessary.
   - System-specific options (such as alignment for dnd5e and wildcard/extra for swade) have been dropped. If you used these, the migration script should pick this up and populate the "Conditional Script" field with the appropriate implementation of what you had selected.

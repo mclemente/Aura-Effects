@@ -24,10 +24,7 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
       color: new ColorField(),
       combatOnly: new BooleanField({ initial: false }),
       disableOnHidden: new BooleanField({ initial: true }),
-      distance: new NumberField({
-        initial: 0,
-        min: 0
-      }),
+      distanceFormula: new StringField({ initial: "0" }),
       disposition: new NumberField({
         initial: DISPOSITIONS.ANY,
         choices: {
@@ -57,6 +54,10 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
       if (actor?.getActiveTokens(false, true)[0]?.hidden) return true;
     }
     return false;
+  }
+
+  get distance() {
+    return new Roll(this.distanceFormula || "0", this.parent.parent?.getRollData?.()).evaluateSync({ strict: false }).total;
   }
 
   prepareDerivedData() {

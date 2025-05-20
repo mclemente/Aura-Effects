@@ -16,7 +16,7 @@ In the 5e system, "Aura of Protection" is an aura that paladins get which provid
 ![Aura image](docs/example_3.png)
 
 3. Configure:
-- Set distance (10 feet)
+- Set distance (using the scale value which exists on the class, in this case)
 - Ensure the aura applies to the source
 - Set disposition to only affect friendly tokens
 - Ensure it _cannot_ stack

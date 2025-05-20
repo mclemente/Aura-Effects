@@ -122,12 +122,13 @@ function getMigratedEffectData(oldEffect, oldSettings) {
           ? ["move"]
           : [],
       disableOnHidden: hidden,
-      distance: Number(radius),
+      distanceFormula: radius,
       disposition: aura === "All"
         ? DISPOSITIONS.ANY 
         : aura === "Allies"
           ? DISPOSITIONS.FRIENDLY
           : DISPOSITIONS.HOSTILE,
+      evaluatePreApply: true,
       overrideName: nameOverride,
       script: newCustomCheck,
     };

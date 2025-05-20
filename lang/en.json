@@ -39,8 +39,8 @@
                         "hint": "Which token dispositions (relative to the source token) this aura will apply to.",
                         "label": "Disposition"
                     },
-                    "distance": {
-                        "hint": "Specifies the radius that this aura extends to.",
+                    "distanceFormula": {
+                        "hint": "Specifies the radius that this aura extends to (roll data is accepted).",
                         "label": "Distance"
                     },
                     "evaluatePreApply": {
