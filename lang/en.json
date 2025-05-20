@@ -20,6 +20,7 @@
                         "label": "Collision Types"
                     },
                     "color": {
+                        "hint": "If blank, will inherit User color (or GM's color, if no user has the actor set as their character).",
                         "label": "Color"
                     },
                     "combatOnly": {
@@ -82,6 +83,10 @@
         },
         "NoActiveGM": "Aura Effects will not attempt to function without a GM logged in.",
         "SETTINGS": {
+            "DefaultVisibility": {
+                "Hint": "When enabled, visualization will be on by default for any newly-created aura effects.",
+                "Name": "Aura Effects Default to Visible"
+            },
             "DisableScrollingText": {
                 "Hint": "Disable the scrolling text that appears when adding/removing aura-caused effects to a token's actor.",
                 "Name": "Disable Scrolling Text for Aura Effects"

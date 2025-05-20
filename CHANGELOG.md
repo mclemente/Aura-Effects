@@ -14,6 +14,8 @@
 - Added combat-only and disable on hidden fields
 - Added a name override so that the applied effect can have a different name from the source effect
 - Added a compendium of Macros (currently, only contains the migration script from Active Auras to Aura Effects)
+- If color is left blank, now inherits the user color of whichever user has the actor set as their Character (or the GM, if none).
+- Added a setting to specify the default visualization of newly-created aura effects.
 
 ## Version 0.6.1
 - Auras tab is now scrollable

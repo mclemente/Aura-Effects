@@ -96,6 +96,7 @@ function updateAurasForToken(token, onlyNew = false) {
     if (tokenAuras.get(token).has(effect.id)) continue;
     tokenAuras.get(token).set(effect.id, new AuraPointEffectSource({ object: token, effect }));
   }
+  const tokenOwner = game.users.getDesignatedUser(u => u.character === token.actor) ?? game.users.activeGM;
   for (const [id, aura] of tokenAuras.get(token).entries()) {
     const data = sourceEffects.find(e => e.id === id)?.system;
     if (!data) {
@@ -113,7 +114,7 @@ function updateAurasForToken(token, onlyNew = false) {
       preview: token.isPreview,
       walls: data.walls,
       alpha: data.opacity,
-      color: data.color,
+      color: data.color ?? tokenOwner?.color,
       collisionTypes: data.collisionTypes
     });
     aura.add();

@@ -226,7 +226,9 @@ function injectAuraButton(app, html) {
     if (foundry.utils.getType(updates.changes) !== "Array") updates.changes = Object.values(updates.changes ?? {});
     updates.type = "auraeffects.aura";
     foundry.utils.setProperty(updates, "flags.auraeffects.originalType", currType);
-    updates["==system"] = {};
+    updates["==system"] = {
+      showRadius: game.settings.get("auraeffects", "defaultVisibility")
+    };
     return app.document.update(updates);
   });
 }

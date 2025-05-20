@@ -39,4 +39,12 @@ export function registerSettings() {
     type: String,
     default: "0.0.0"
   });
+  game.settings.register("auraeffects", "defaultVisibility", {
+    name: "AURAEFFECTS.SETTINGS.DefaultVisibility.Name",
+    hint: "AURAEFFECTS.SETTINGS.DefaultVisibility.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
 }
