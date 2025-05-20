@@ -1,6 +1,6 @@
 {
-  "id": "ActiveAuras",
-  "title": "Active Auras",
+  "id": "auraeffects",
+  "title": "Aura Effects",
   "version": "#{VERSION}#",
   "compatibility": {
     "minimum": "13",
@@ -29,6 +29,25 @@
       "lang": "en",
       "name": "English",
       "path": "lang/en.json"
+    }
+  ],
+  "packs": [
+    {
+      "name": "AuraEffectsMacros",
+      "label": "Aura Effects Macros",
+      "path": "packs/aura-effects-macros",
+      "type": "Macro",
+      "module": "auraeffects"
+    }
+  ],
+  "packFolders": [
+    {
+      "name": "Aura Effects",
+      "sorting": "a",
+      "color": "#b08e1e",
+      "packs": [
+        "AuraEffectsMacros"
+      ]
     }
   ],
   "url": "#{URL}#",

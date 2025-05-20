@@ -3,7 +3,7 @@ import { DISPOSITIONS } from "./constants.mjs";
 const { BooleanField, ColorField, JavaScriptField, NumberField, SetField, StringField } = foundry.data.fields;
 
 export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel {
-  static LOCALIZATION_PREFIXES = ["ACTIVEAURAS.ACTIVEEFFECT.Aura"];
+  static LOCALIZATION_PREFIXES = ["AURAEFFECTS.ACTIVEEFFECT.Aura"];
   static defineSchema() {
     return {
       applyToSelf: new BooleanField({ initial: true }),
@@ -31,9 +31,9 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
       disposition: new NumberField({
         initial: DISPOSITIONS.ANY,
         choices: {
-          [DISPOSITIONS.HOSTILE]: "ACTIVEAURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Hostile",
-          [DISPOSITIONS.ANY]: "ACTIVEAURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Any",
-          [DISPOSITIONS.FRIENDLY]: "ACTIVEAURAS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Friendly"
+          [DISPOSITIONS.HOSTILE]: "AURAEFFECTS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Hostile",
+          [DISPOSITIONS.ANY]: "AURAEFFECTS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Any",
+          [DISPOSITIONS.FRIENDLY]: "AURAEFFECTS.ACTIVEEFFECT.Aura.FIELDS.disposition.Choices.Friendly"
         }
       }),
       evaluatePreApply: new BooleanField({ initial: false }),
@@ -63,6 +63,16 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
     if (!this.applyToSelf) {
       this.parent.changes = [];
       this.parent.statuses = new Set();
+    }
+    if (!this.canStack) {
+      let actor = this.parent.parent;
+      if (actor instanceof Item) actor = actor.actor;
+      const nameMatch = this.overrideName || this.parent.name;
+      const existing = actor?.appliedEffects.find(e => e.flags?.auraeffects?.fromAura && e.name === nameMatch);
+      if (existing) {
+        this.parent.changes = [];
+        this.parent.statuses = new Set();
+      }
     }
   }
 }

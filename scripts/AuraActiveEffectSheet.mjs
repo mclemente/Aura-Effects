@@ -24,8 +24,8 @@ export default class AuraActiveEffectSheet extends foundry.applications.sheets.A
   static #onRevert() {
     const updates = this._processFormData(null, this.form, new foundry.applications.ux.FormDataExtended(this.form));
     if (foundry.utils.getType(updates.changes) !== "Array") updates.changes = Object.values(updates.changes ?? {});
-    updates.type = this.document.getFlag("ActiveAuras", "originalType") ?? "base";
-    foundry.utils.setProperty(updates, "flags.-=ActiveAuras", null);
+    updates.type = this.document.getFlag("auraeffects", "originalType") ?? "base";
+    foundry.utils.setProperty(updates, "flags.-=auraeffects", null);
     updates["==system"] = {};
     this.document.update(updates);
   }

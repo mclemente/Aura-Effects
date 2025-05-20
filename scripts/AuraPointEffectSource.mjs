@@ -4,7 +4,7 @@ export class AuraPointEffectSource extends foundry.canvas.sources.PointEffectSou
   foundry.canvas.sources.BaseEffectSource
 ) {
   static sourceType = 'aura';
-  static effectsCollection = 'activeAuras';
+  static effectsCollection = 'auraEffects';
   graphics;
   id;
   sourceId;
@@ -52,7 +52,7 @@ export class AuraPointEffectSource extends foundry.canvas.sources.PointEffectSou
       source: this,
       boundaryShapes: []
     };
-    config.boundaryShapes.push(((game.settings.get("core", "gridDiagonals") === 1) && game.settings.get("ActiveAuras", "exactCircles"))
+    config.boundaryShapes.push(((game.settings.get("core", "gridDiagonals") === 1) && game.settings.get("auraeffects", "exactCircles"))
       ? new PIXI.Circle(this.origin.x, this.origin.y, config.radius + config.externalRadius)
       : new PIXI.Polygon(canvas.grid.getCircle(this.origin, (config.radius + config.externalRadius) * canvas.grid.distance / canvas.grid.size)));
     return config;

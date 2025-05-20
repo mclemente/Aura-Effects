@@ -1,9 +1,9 @@
 import { updateAllVisualizations } from "./auraVisualization.mjs";
 
 export function registerSettings() {
-  game.settings.register("ActiveAuras", "disableVisuals", {
-    name: "ACTIVEAURAS.SETTINGS.DisableVisuals.Name",
-    hint: "ACTIVEAURAS.SETTINGS.DisableVisuals.Hint",
+  game.settings.register("auraeffects", "disableVisuals", {
+    name: "AURAEFFECTS.SETTINGS.DisableVisuals.Name",
+    hint: "AURAEFFECTS.SETTINGS.DisableVisuals.Hint",
     scope: "client",
     config: true,
     type: Boolean,
@@ -12,9 +12,9 @@ export function registerSettings() {
       if (canvas?.ready) updateAllVisualizations();
     }
   });
-  game.settings.register("ActiveAuras", "exactCircles", {
-    name: "ACTIVEAURAS.SETTINGS.ExactCircles.Name",
-    hint: "ACTIVEAURAS.SETTINGS.ExactCircles.Hint",
+  game.settings.register("auraeffects", "exactCircles", {
+    name: "AURAEFFECTS.SETTINGS.ExactCircles.Name",
+    hint: "AURAEFFECTS.SETTINGS.ExactCircles.Hint",
     scope: "client",
     config: true,
     type: Boolean,
@@ -23,15 +23,15 @@ export function registerSettings() {
       if (canvas?.ready) updateAllVisualizations();
     }
   });
-  game.settings.register("ActiveAuras", "disableScrollingText", {
-    name: "ACTIVEAURAS.SETTINGS.DisableScrollingText.Name",
-    hint: "ACTIVEAURAS.SETTINGS.DisableScrollingText.Hint",
+  game.settings.register("auraeffects", "disableScrollingText", {
+    name: "AURAEFFECTS.SETTINGS.DisableScrollingText.Name",
+    hint: "AURAEFFECTS.SETTINGS.DisableScrollingText.Hint",
     scope: "world",
     config: true,
     type: Boolean,
     default: false
   });
-  game.settings.register("ActiveAuras", "migrationVersion", {
+  game.settings.register("auraeffects", "migrationVersion", {
     name: "Migration Version",
     hint: "Tracks the last completed migration. Please do not touch this.",
     scope: "world",

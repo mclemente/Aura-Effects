@@ -1,9 +1,9 @@
-# Active Auras
+# Aura Effects
 ## Summary
 A module that lets Active Effects to be configured as "Auras," automatically applying to tokens within a configured range, and optionally showing a visualization of the aura.
 
 ## Example: Aura of Protection
-In the 5e system, "Aura of Protection" is an aura that paladins get which provides a bonus to saving throws for allies within 10 (later 30) feet equal to the charisma modifier of the paladin. If within range of two paladins both emanating the aura, a character only receives the better of the two. Here is how that could be set up using Active Auras:
+In the 5e system, "Aura of Protection" is an aura that paladins get which provides a bonus to saving throws for allies within 10 (later 30) feet equal to the charisma modifier of the paladin. If within range of two paladins both emanating the aura, a character only receives the better of the two. Here is how that could be set up using Aura Effects:
 
 ![Pre-convert image](docs/example_1.png)
 

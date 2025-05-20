@@ -84,7 +84,7 @@ function executeScript(sourceToken, token, effect) {
   try {
     return toEvaluate.call(toEvaluate, actor, token.object, sourceToken.object, rollData);
   } catch (error) {
-    console.error(game.i18n.format("ACTIVEAURAS.Errors.ScriptError", {
+    console.error(game.i18n.format("AURAEFFECTS.Errors.ScriptError", {
       actor: sourceToken.actor.name,
       effect: effect.name,
       error
@@ -136,7 +136,7 @@ function getAllAuraEffects(actor) {
   const activeAuras = [];
   const inactiveAuras = [];
   for (const effect of actor.allApplicableEffects()) {
-    if (effect.type !== "ActiveAuras.aura") continue;
+    if (effect.type !== "auraeffects.aura") continue;
     if (!effect.disabled && !effect.isSuppressed) activeAuras.push(effect);
     else inactiveAuras.push(effect);
   }
@@ -161,12 +161,12 @@ async function removeAndReplaceAuras(effects, scene) {
   }, {});
 
   // Remove effects
-  await activeGM.query("ActiveAuras.deleteEffects", { effectUuids: effects.map(e => e.uuid) });
+  await activeGM.query("auraeffects.deleteEffects", { effectUuids: effects.map(e => e.uuid) });
 
   // Get all on-scene aura sources for the effects just deleted, sort by best, apply to tokens as possible
   const newBestApplyMap = {};
   function getSourceEffect(token, effectName) {
-    return token.actor.appliedEffects.find(e => (e.type === "ActiveAuras.aura") && ((e.system.overrideName.trim() || e.name) === effectName));
+    return token.actor.appliedEffects.find(e => (e.type === "auraeffects.aura") && ((e.system.overrideName.trim() || e.name) === effectName));
   }
   Object.keys(effectToRemovedMap).forEach(effectName => {
     const allEmitting = scene.tokens.filter(t => getAllAuraEffects(t.actor)[0].some(e => (e.system.overrideName.trim() || e.name) === effectName));
@@ -196,7 +196,7 @@ async function removeAndReplaceAuras(effects, scene) {
       }
     }
   });
-  return activeGM.query("ActiveAuras.applyAuraEffects", newBestApplyMap);
+  return activeGM.query("auraeffects.applyAuraEffects", newBestApplyMap);
 }
 
 /**
@@ -206,7 +206,7 @@ async function removeAndReplaceAuras(effects, scene) {
  * @returns {Record<string, HandlebarsTemplatePart>}            The extended PARTS
  */
 function getExtendedParts(origParts) {
-  return Object.fromEntries(Object.entries(origParts).toSpliced(-1, 0, ["aura", { template: "modules/ActiveAuras/templates/auraConfig.hbs" }]));
+  return Object.fromEntries(Object.entries(origParts).toSpliced(-1, 0, ["aura", { template: "modules/auraeffects/templates/auraConfig.hbs" }]));
 }
 
 /**

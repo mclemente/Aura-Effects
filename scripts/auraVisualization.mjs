@@ -8,7 +8,7 @@ const tokenAuras = new Map()
  * When a new canvas is initialized, create a new effects Collection to hold aura visual effects
  */
 function canvasInit() {
-  canvas.effects.activeAuras = new Collection();
+  canvas.effects.auraEffects = new Collection();
 }
 
 /**
@@ -16,12 +16,12 @@ function canvasInit() {
  * @param {CanvasLayer} layer   The grid layer
  */
 function drawGridLayer(layer) {
-  layer.activeAuras = layer.addChild(new PIXI.Container());
+  layer.auraEffects = layer.addChild(new PIXI.Container());
   const aurasFilter = foundry.canvas.rendering.filters.VisualEffectsMaskingFilter.create({
     mode: foundry.canvas.rendering.filters.VisualEffectsMaskingFilter.FILTER_MODES.BACKGROUND,
     visionTexture: canvas.masks.vision.renderTexture
   });
-  layer.activeAuras.filters = [aurasFilter];
+  layer.auraEffects.filters = [aurasFilter];
   canvas.effects.visualEffectsMaskingFilters.add(aurasFilter);
 }
 
@@ -57,7 +57,7 @@ function destroyToken(token) {
   if (!tokenAuras.has(token)) return;
   tokenAuras.get(token).forEach(aura => {
     aura._destroy();
-    canvas.effects.activeAuras.delete(aura.sourceId);
+    canvas.effects.auraEffects.delete(aura.sourceId);
   });
   tokenAuras.get(token).clear();
   tokenAuras.delete(token);
@@ -84,7 +84,7 @@ function refreshToken(token) {
  * @returns 
  */
 function updateAurasForToken(token, onlyNew = false) {
-  if (!token.actor || game.settings.get("ActiveAuras", "disableVisuals")) {
+  if (!token.actor || game.settings.get("auraeffects", "disableVisuals")) {
     Array.from(tokenAuras.get(token).entries()).forEach(([id, aura]) => {
       removeAura(token, aura);
     });
@@ -118,7 +118,7 @@ function updateAurasForToken(token, onlyNew = false) {
     });
     aura.add();
 
-    canvas.effects.activeAuras.set(aura.sourceId, aura);
+    canvas.effects.auraEffects.set(aura.sourceId, aura);
   }
   refreshAuras();
 }
@@ -127,10 +127,10 @@ function updateAurasForToken(token, onlyNew = false) {
  * Re-render all on-canvas auras
  */
 function refreshAuras() {
-  canvas.interface.grid?.activeAuras?.removeChildren();
-  for (const aura of canvas.effects.activeAuras) {
+  canvas.interface.grid?.auraEffects?.removeChildren();
+  for (const aura of canvas.effects.auraEffects) {
     if (!aura.active) continue;
-    canvas.interface.grid?.activeAuras?.addChild(aura.graphics);
+    canvas.interface.grid?.auraEffects?.addChild(aura.graphics);
   }
 }
 
@@ -140,7 +140,7 @@ function refreshAuras() {
  * @param {AuraPointEffectSource} aura  The aura to be removed
  */
 function removeAura(token, aura) {
-  canvas.effects.activeAuras.delete(aura.sourceId);
+  canvas.effects.auraEffects.delete(aura.sourceId);
   aura._destroy();
   tokenAuras.get(token).delete(aura.id);
 }

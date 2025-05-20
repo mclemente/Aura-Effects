@@ -2,7 +2,7 @@ import { getExtendedParts, getExtendedTabs } from "../helpers.mjs";
 export default function replaceDAESheet() {
   if (!game.modules.get("dae")?.active) return;
   const { cls: DAEConfig, label, default: makeDefault } = CONFIG.ActiveEffect.sheetClasses.base["core.DAEActiveEffectConfig"];
-  foundry.applications.apps.DocumentSheetConfig.unregisterSheet(ActiveEffect, "core", DAEConfig, { types: ["ActiveAuras.aura"] });
+  foundry.applications.apps.DocumentSheetConfig.unregisterSheet(ActiveEffect, "core", DAEConfig, { types: ["auraeffects.aura"] });
   class AuraDAESheet extends DAEConfig {
     static PARTS = getExtendedParts(super.PARTS);
 
@@ -28,16 +28,16 @@ export default function replaceDAESheet() {
     static #onRevert() {
       const updates = this._processFormData(null, this.form, new foundry.applications.ux.FormDataExtended(this.form));
       if (foundry.utils.getType(updates.changes) !== "Array") updates.changes = Object.values(updates.changes ?? {});
-      updates.type = this.document.getFlag("ActiveAuras", "originalType") ?? "base";
-      foundry.utils.setProperty(updates, "flags.-=ActiveAuras", null);
+      updates.type = this.document.getFlag("auraeffects", "originalType") ?? "base";
+      foundry.utils.setProperty(updates, "flags.-=auraeffects", null);
       updates["==system"] = {};
       this.document.update(updates);
     }
   }
-  
-  foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, "ActiveAuras", AuraDAESheet, {
+
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, "auraeffects", AuraDAESheet, {
     label,
-    types: ["ActiveAuras.aura"],
+    types: ["auraeffects.aura"],
     makeDefault
   });
 }

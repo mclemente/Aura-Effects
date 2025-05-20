@@ -7,7 +7,7 @@ const gmQueue = new foundry.utils.Semaphore();
  * @returns {Promise<boolean>}          true
  */
 async function deleteEffects({ effectUuids }) {
-  const disableAnimation = game.settings.get("ActiveAuras", "disableScrollingText");
+  const disableAnimation = game.settings.get("auraeffects", "disableScrollingText");
   await gmQueue.add(() => {
     const effects = new Set(effectUuids.map(uuid => fromUuidSync(uuid))).filter(e => e instanceof ActiveEffect);
     return Promise.all(effects.map(e => e.delete({ animate: !disableAnimation })));
@@ -23,7 +23,7 @@ async function deleteEffects({ effectUuids }) {
  * @returns {Promise<boolean>}                          true
  */
 async function applyAuraEffects(actorToEffectsMap) {
-  const disableAnimation = game.settings.get("ActiveAuras", "disableScrollingText");
+  const disableAnimation = game.settings.get("auraeffects", "disableScrollingText");
   await gmQueue.add(() => {
     return Promise.all(Object.entries(actorToEffectsMap).map(([actorUuid, effectUuids]) => {
       const actor = fromUuidSync(actorUuid);
@@ -36,17 +36,25 @@ async function applyAuraEffects(actorToEffectsMap) {
         const effectData = foundry.utils.mergeObject(effect.toObject(), {
           name: effect.system.overrideName?.trim() || effect.name,
           origin: uuid,
-          type: effect.getFlag("ActiveAuras", "originalType") ?? "base",
+          type: effect.getFlag("auraeffects", "originalType") ?? "base",
           transfer: false,
-          "flags.ActiveAuras.fromAura": true
+          "flags.auraeffects.fromAura": true
         });
         if (!effect.system.canStack) {
           const bestValue = new Roll(effect.system.bestFormula.trim() || "0", effect.parent?.getRollData?.()).evaluateSync().total;
-          foundry.utils.setProperty(effectData, "flags.ActiveAuras.bestValue", bestValue);
-          const existingEffect = allEffects.find(e => e.flags?.ActiveAuras?.fromAura && e.name === effectData.name);
+          foundry.utils.setProperty(effectData, "flags.auraeffects.bestValue", bestValue);
+          const existingEffect = allEffects.find(e => e.flags?.auraeffects?.fromAura && e.name === effectData.name);
           if (existingEffect) {
-            if ((existingEffect.flags.ActiveAuras.bestValue ?? 0) >= bestValue) return null;
+            if ((existingEffect.flags.auraeffects.bestValue ?? 0) >= bestValue) return null;
             effectsToDelete.push(existingEffect.id);
+          }
+          const existingSourceEffect = allEffects.find(e => 
+            e.type === "auraeffects.aura"
+            && e.system.applyToSelf
+            && (e.system.overrideName.trim() || e.name) === effectData.name);
+          if (existingSourceEffect) {
+            const currBest = new Roll(existingSourceEffect.system.bestFormula.trim() || "0", existingSourceEffect.parent?.getRollData?.()).evaluateSync().total;
+            if (currBest >= bestValue) return null;
           }
         }
         if (game.modules.get("dae")?.active) {
@@ -62,9 +70,9 @@ async function applyAuraEffects(actorToEffectsMap) {
         return effectData;
       }).filter(e => e).reduce((acc, effect) => {
         const existing = acc.find(e => e.name === effect.name);
-        const existingBestValue = existing?.flags.ActiveAuras.bestValue;
+        const existingBestValue = existing?.flags.auraeffects.bestValue;
         if (existingBestValue === undefined) return [...acc, effect];
-        const currBestValue = effect.flags.ActiveAuras.bestValue;
+        const currBestValue = effect.flags.auraeffects.bestValue;
         if (currBestValue > existingBestValue) acc.findSplice(e => e === existing, effect);
         return acc;
       }, []);

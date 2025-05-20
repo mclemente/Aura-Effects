@@ -1,5 +1,5 @@
 {
-    "ACTIVEAURAS": {
+    "AURAEFFECTS": {
         "ACTIVEEFFECT": {
             "Aura": {
                 "FIELDS": {
@@ -71,13 +71,15 @@
         "ConvertToNormal": "Revert to Normal Effect",
         "ConvertToNormalHint": "This will immediately revert this effect to its original type; aura settings will be lost.",
         "Errors": {
-            "ScriptError": "Error while running Active Auras Conditional Script for effect \"{effect}\" on actor \"{actor}\":\n{error}"
+            "ScriptError": "Error while running Aura Effects Conditional Script for effect \"{effect}\" on actor \"{actor}\":\n{error}"
         },
         "Migrations": {
-            "AllCompleted": "All Active Auras migrations completed!",
-            "Beginning": "Beginning Active Auras migrations..."
+            "ActiveAurasBegin": "Beginning migration from Active Auras to Aura Effects...",
+            "ActiveAurasComplete": "Migration from Active Auras to Aura Effects now complete!",
+            "AllCompleted": "All Aura Effects migrations completed!",
+            "Beginning": "Beginning Aura Effects migrations..."
         },
-        "NoActiveGM": "Active Auras will not attempt to function without a GM logged in.",
+        "NoActiveGM": "Aura Effects will not attempt to function without a GM logged in.",
         "SETTINGS": {
             "DisableScrollingText": {
                 "Hint": "Disable the scrolling text that appears when adding/removing aura-caused effects to a token's actor.",
@@ -97,5 +99,5 @@
     "EFFECT.TABS": {
         "aura": "Aura"
     },
-    "TYPES.ActiveEffect.ActiveAuras.aura": "Aura"
+    "TYPES.ActiveEffect.auraeffects.aura": "Aura"
 }

@@ -6,6 +6,7 @@ import { registerSettings } from "./settings.mjs";
 import { overrideSheets } from "./plugins/pluginHelpers.mjs";
 import { canvasInit, destroyToken, drawGridLayer, drawToken, refreshToken, updateAllVisualizations, updateTokenVisualization } from "./auraVisualization.mjs";
 import { migrate } from "./migrations.mjs";
+import { api } from "./api.mjs";
 
 // Track whether the "with no GM this no work" warning has been seen
 let seenWarning = false;
@@ -26,7 +27,7 @@ async function updateToken(token, updates, options, userId) {
   const activeGM = game.users.activeGM;
   if (!activeGM) {
     if (!seenWarning) {
-      ui.notifications.warn("ACTIVEAURAS.NoActiveGM", { localize: true });
+      ui.notifications.warn("AURAEFFECTS.NoActiveGM", { localize: true });
       seenWarning = true;
     }
     return;
@@ -37,7 +38,7 @@ async function updateToken(token, updates, options, userId) {
     const toRemoveAppliedEffects = canvas.scene.tokens
       .filter(t => t.actor && (t !== token))
       .flatMap(t => t.actor.appliedEffects)
-      .filter(e => e.flags?.ActiveAuras?.fromAura && toRemoveSourceEffects.some(sourceEff => e.origin === sourceEff.uuid));
+      .filter(e => e.flags?.auraeffects?.fromAura && toRemoveSourceEffects.some(sourceEff => e.origin === sourceEff.uuid));
     if (toRemoveAppliedEffects.length) removeAndReplaceAuras(toRemoveAppliedEffects, token.parent);
   }
   if (!("x" in updates) && !("y" in updates) && !("elevation" in updates) && !("hidden" in updates)) return;
@@ -80,10 +81,10 @@ async function updateToken(token, updates, options, userId) {
     }
   }
   if (isFinalMovementComplete(token)) {
-    await activeGM.query("ActiveAuras.applyAuraEffects", actorToEffectsMap);
+    await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
   }
 
-  const currentAppliedAuras = token.actor.appliedEffects.filter(i => i.flags?.ActiveAuras?.fromAura);
+  const currentAppliedAuras = token.actor.appliedEffects.filter(i => i.flags?.auraeffects?.fromAura);
   // Get all aura source effects on the scene, split into "actor shouldn't have" and "actor should have"
   const [sceneAurasToRemove, sceneAurasToAdd] = token.parent.tokens.reduce(([toRemove, toAdd], sourceToken) => {
     if (sourceToken.actor === token.actor) return [toRemove, toAdd];
@@ -115,14 +116,14 @@ async function updateToken(token, updates, options, userId) {
   }, [[], []]);
 
   for (const effect of token.actor.appliedEffects) {
-    if (!effect.flags?.ActiveAuras?.fromAura) continue;
+    if (!effect.flags?.auraeffects?.fromAura) continue;
     const sourceEffect = fromUuidSync(effect.origin);
     if (!sourceEffect || sourceEffect.disabled || sourceEffect.isSuppressed) sceneAurasToRemove.push(effect);
   }
 
   // Remove effects actor shouldn't have, add effects actor should have (if final segment of token's movement)
   if (sceneAurasToRemove.length) await removeAndReplaceAuras(sceneAurasToRemove, token.parent);
-  if (sceneAurasToAdd.length && isFinalMovementComplete(token)) await activeGM.query("ActiveAuras.applyAuraEffects", {
+  if (sceneAurasToAdd.length && isFinalMovementComplete(token)) await activeGM.query("auraeffects.applyAuraEffects", {
     [token.actor.uuid]: sceneAurasToAdd.map(e => e.uuid)
   });
 }
@@ -137,7 +138,7 @@ async function updateToken(token, updates, options, userId) {
  */
 async function updateActiveEffect(effect, updates, options, userId) {
   if (game.user.id !== userId) return;
-  if (effect.type !== "ActiveAuras.aura") return;
+  if (effect.type !== "auraeffects.aura") return;
   if (!updates.hasOwnProperty("disabled")) return;
   if (!canvas.scene) return;
   const actor = (effect.parent instanceof Actor) ? effect.parent : effect.parent?.parent;
@@ -146,7 +147,7 @@ async function updateActiveEffect(effect, updates, options, userId) {
   const activeGM = game.users.activeGM;
   if (!activeGM) {
     if (!seenWarning) {
-      ui.notifications.warn("ACTIVEAURAS.NoActiveGM", { localize: true });
+      ui.notifications.warn("AURAEFFECTS.NoActiveGM", { localize: true });
       seenWarning = true;
     }
     return;
@@ -155,7 +156,7 @@ async function updateActiveEffect(effect, updates, options, userId) {
     const toRemoveAppliedEffects = canvas.scene.tokens
       .filter(t => t.actor && (t.actor !== actor))
       .flatMap(t => t.actor.appliedEffects)
-      .filter(e => e.flags?.ActiveAuras?.fromAura && e.origin === effect.uuid);
+      .filter(e => e.flags?.auraeffects?.fromAura && e.origin === effect.uuid);
     await removeAndReplaceAuras(toRemoveAppliedEffects, canvas.scene);
   } else {
     // TODO: Maybe refactor this logic so that it can be utilized in the main updateToken function
@@ -164,7 +165,7 @@ async function updateActiveEffect(effect, updates, options, userId) {
     const tokensInRange = getNearbyTokens(token, radius, { disposition, collisionTypes }).map(t => t.actor)
     const toAddTo = tokensInRange.filter(a => (a !== token.actor) && !a?.effects.find(e => e.origin === effect.uuid)).map(a => a?.uuid);
     const actorToEffectsMap = Object.fromEntries(toAddTo.map(actorUuid => [actorUuid, [effect.uuid]]));
-    await activeGM.query("ActiveAuras.applyAuraEffects", actorToEffectsMap);
+    await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
   }
 }
 
@@ -177,14 +178,14 @@ async function updateActiveEffect(effect, updates, options, userId) {
  */
 async function deleteActiveEffect(effect, options, userId) {
   if (game.user.id !== userId) return;
-  if (effect.type !== "ActiveAuras.aura") return;
+  if (effect.type !== "auraeffects.aura") return;
   if (!canvas.scene) return;
   const actor = (effect.parent instanceof Actor) ? effect.parent : effect.parent?.parent;
   if (!actor) return;
   const activeGM = game.users.activeGM;
   if (!activeGM) {
     if (!seenWarning) {
-      ui.notifications.warn("ACTIVEAURAS.NoActiveGM", { localize: true });
+      ui.notifications.warn("AURAEFFECTS.NoActiveGM", { localize: true });
       seenWarning = true;
     }
     return;
@@ -192,7 +193,7 @@ async function deleteActiveEffect(effect, options, userId) {
   const toRemoveAppliedEffects = canvas.scene.tokens
     .filter(t => t.actor && (t.actor !== actor))
     .flatMap(t => t.actor.appliedEffects)
-    .filter(e => e.flags?.ActiveAuras?.fromAura && e.origin === effect.uuid);
+    .filter(e => e.flags?.auraeffects?.fromAura && e.origin === effect.uuid);
   await removeAndReplaceAuras(toRemoveAppliedEffects, canvas.scene);
 }
 
@@ -207,11 +208,11 @@ function injectAuraButton(app, html) {
   const template = document.createElement("template");
   template.innerHTML = `
     <div class="form-group">
-      <label>Active Auras</label>
+      <label>Aura Effects</label>
       <div class="form-fields">
-        <button type="button" data-tooltip="ACTIVEAURAS.ConvertToAuraHint">
+        <button type="button" data-tooltip="AURAEFFECTS.ConvertToAuraHint">
           <i class="fa-solid fa-person-rays"></i>
-          ${game.i18n.localize("ACTIVEAURAS.ConvertToAura")}
+          ${game.i18n.localize("AURAEFFECTS.ConvertToAura")}
         </button>
       </div>
     </div>
@@ -223,8 +224,8 @@ function injectAuraButton(app, html) {
     const updates = app._processFormData(null, app.form, new foundry.applications.ux.FormDataExtended(app.form));
     // Ensure changes are properly serialized into an array
     if (foundry.utils.getType(updates.changes) !== "Array") updates.changes = Object.values(updates.changes ?? {});
-    updates.type = "ActiveAuras.aura";
-    foundry.utils.setProperty(updates, "flags.ActiveAuras.originalType", currType);
+    updates.type = "auraeffects.aura";
+    foundry.utils.setProperty(updates, "flags.auraeffects.originalType", currType);
     updates["==system"] = {};
     return app.document.update(updates);
   });
@@ -247,17 +248,17 @@ function registerHooks() {
 }
 
 function registerQueries() {
-  CONFIG.queries["ActiveAuras.deleteEffects"] = deleteEffects;
-  CONFIG.queries["ActiveAuras.applyAuraEffects"] = applyAuraEffects;
+  CONFIG.queries["auraeffects.deleteEffects"] = deleteEffects;
+  CONFIG.queries["auraeffects.applyAuraEffects"] = applyAuraEffects;
 }
 
 function registerAuraType() {
   Object.assign(CONFIG.ActiveEffect.dataModels, {
-    "ActiveAuras.aura": AuraActiveEffectData
+    "auraeffects.aura": AuraActiveEffectData
   });
-  foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, "ActiveAuras", AuraActiveEffectSheet, {
-    label: "ACTIVEAURAS.SHEETS.AuraActiveEffectSheet",
-    types: ["ActiveAuras.aura"],
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, "auraeffects", AuraActiveEffectSheet, {
+    label: "AURAEFFECTS.SHEETS.AuraActiveEffectSheet",
+    types: ["auraeffects.aura"],
     makeDefault: true
   });
 }
@@ -272,5 +273,6 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   overrideSheets();
+  game.modules.get("auraeffects").api = api;
   if (game.user.isActiveGM) migrate();
 });
