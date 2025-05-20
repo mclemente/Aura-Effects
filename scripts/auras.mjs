@@ -39,7 +39,7 @@ async function updateToken(token, updates, options, userId) {
       .filter(t => t.actor && (t !== token))
       .flatMap(t => t.actor.appliedEffects)
       .filter(e => e.flags?.auraeffects?.fromAura && toRemoveSourceEffects.some(sourceEff => e.origin === sourceEff.uuid));
-    if (toRemoveAppliedEffects.length) removeAndReplaceAuras(toRemoveAppliedEffects, token.parent);
+    if (toRemoveAppliedEffects.length) await removeAndReplaceAuras(toRemoveAppliedEffects, token.parent);
   }
   if (!("x" in updates) && !("y" in updates) && !("elevation" in updates) && !("hidden" in updates)) return;
   const [activeSourceEffects, inactiveSourceEffects] = getAllAuraEffects(token.actor);
