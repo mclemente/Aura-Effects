@@ -1,5 +1,8 @@
 # Aura Effects Changelog
 
+## Version 1.0.2
+- Fixed release bug (maybe?)
+
 ## Version 1.0.1
 - Moved a chunk of code into `moveToken` hook, fixing bug where distance was sometimes erroneously calculated from token's final position
 
