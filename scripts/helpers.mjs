@@ -1,4 +1,7 @@
-import { DISPOSITIONS } from "./constants.mjs";
+/** @import { ActiveEffect, Actor, Scene, TokenDocument } from "@client/documents/_module.mjs" */
+/** @import { Token } from "@client/canvas/placeables/_module.mjs" */
+/** @import { ElevatedPoint } from "@common/_types.mjs" */
+/** @import { TokenPosition } from "@common/documents/_types.mjs" */
 
 /**
  * Get 3D distance in grid units, returning Infinity if any provided collision types would block the ray
@@ -24,20 +27,21 @@ function getDistance(scene, a, b, { collisionTypes }) {
  * @param {TokenDocument} tokenA                First Token
  * @param {TokenDocument} tokenB                Second Token
  * @param {Object} options                      Additional options
+ * @param {TokenPosition} options.origin        The origin of the source token's movement, if different from its actual position
  * @param {string[]} options.collisionTypes     Which collision types should result in Infinity distance
  * @returns {number}                            The minimum distance
  */
-function getTokenToTokenDistance(tokenA, tokenB, { collisionTypes = [] }) {
+function getTokenToTokenDistance(tokenA, tokenB, { origin = {}, collisionTypes = [] }) {
   const scene = tokenA.parent;
   // TODO: Similar lenience with gridless as gridded?
   const tokenAOffsets = scene.grid.isGridless
-    ? [tokenA.getCenterPoint()]
-    : tokenA.getOccupiedGridSpaceOffsets();
+    ? [tokenA.getCenterPoint(origin)]
+    : tokenA.getOccupiedGridSpaceOffsets(origin);
   const tokenBOffsets = scene.grid.isGridless
     ? [tokenB.getCenterPoint()]
     : tokenB.getOccupiedGridSpaceOffsets();
   // TODO: Perhaps proper elevation ranges
-  const tokenAElevation = tokenA.elevation ?? 0;
+  const tokenAElevation = origin.elevation ?? tokenA.elevation ?? 0;
   const tokenBElevation = tokenB.elevation ?? 0;
   // TODO: Maybe filter down comparisons instead of full 2D array
   const distances = [];
@@ -95,14 +99,15 @@ function executeScript(sourceToken, token, effect) {
 
 /**
  * Get all tokens within a certain range of the source token
- * @param {TokenDocument} source                The source token from which to measure
- * @param {number} radius                       The radius of the grid-based circle to measure
- * @param {Object} options                      Additional options
- * @param {-1|0|1} options.disposition          The relative disposition of token that should be considered (-1 for hostile, 0 for all, 1 for friendly)
- * @param {string[]} options.collisionTypes     Which collision types should result in Infinity distance
- * @returns {TokenDocument[]}                   The TokenDocuments within range
+ * @param {TokenDocument} source                        The source token from which to measure
+ * @param {number} radius                               The radius of the grid-based circle to measure
+ * @param {Object} options                              Additional options
+ * @param {TokenPosition|undefined} options.origin      The origin of the source token's movement, if different from its actual position
+ * @param {-1|0|1} options.disposition                  The relative disposition of token that should be considered (-1 for hostile, 0 for all, 1 for friendly)
+ * @param {string[]|undefined} options.collisionTypes   Which collision types should result in Infinity distance
+ * @returns {TokenDocument[]}                           The TokenDocuments within range
  */
-function getNearbyTokens(source, radius, { disposition = 0, collisionTypes }) {
+function getNearbyTokens(source, radius, { origin, disposition = 0, collisionTypes }) {
   const putativeTokens = Array.from(getGenerallyWithin(source, radius))
     .map(t => t.document)
     .filter(t => {
@@ -110,7 +115,7 @@ function getNearbyTokens(source, radius, { disposition = 0, collisionTypes }) {
       if (disposition > 0) return (source.disposition === t.disposition);
       return true;
     });
-  return putativeTokens.filter(token => getTokenToTokenDistance(source, token, { collisionTypes }) <= radius);
+  return putativeTokens.filter(token => getTokenToTokenDistance(source, token, { origin, collisionTypes }) <= radius);
 }
 
 /**

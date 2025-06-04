@@ -1,5 +1,8 @@
 # Aura Effects Changelog
 
+## Version 1.0.1
+- Moved a chunk of code into `moveToken` hook, fixing bug where distance was sometimes erroneously calculated from token's final position
+
 ## Version 1.0.0
 - Welcome to those coming from Active Auras. There is an included migration script (user-triggered, found in the Aura Effects Macros compendium) which aims to automatically convert effects to the new format. Key differences from Active Auras:
   - Auras can now be visualized! This can be disabled globally per-client, and enabled/disabled per-Aura as well.

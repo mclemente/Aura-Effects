@@ -8,13 +8,15 @@ import { canvasInit, destroyToken, drawGridLayer, drawToken, refreshToken, updat
 import { migrate } from "./migrations.mjs";
 import { api } from "./api.mjs";
 
+/** @import { ActiveEffect, TokenDocument, User } from "@client/documents/_module.mjs"; */
+/** @import { TokenMovementOperation } from "@client/documents/_types.mjs" */
+
 // Track whether the "with no GM this no work" warning has been seen
 let seenWarning = false;
 
 /**
- * Provided the arguments for the updateToken hook, checks if any effects on the token are aura source effects
- * and, if so, removes/adds to nearby tokens as necessary. Also checks if moving should remove non-source aura
- * effects (or add them) and does so if necessary.
+ * Provided the arguments for the updateToken hook, checks whether any updates should cause a change in
+ * auras (e.g. a token becoming hidden or un-hidden) and applies those changes
  * @param {TokenDocument} token     The token being updated
  * @param {Object} updates          The updates
  * @param {Object} options          Additional options
@@ -33,15 +35,59 @@ async function updateToken(token, updates, options, userId) {
     return;
   }
   if (!token.actor) return;
+  const [activeSourceEffects, inactiveSourceEffects] = getAllAuraEffects(token.actor);
+  // Handle anything that should happen regardless of whether there is movement
   if (updates.hidden) {
-    const toRemoveSourceEffects = getAllAuraEffects(token.actor)[1].filter(e => e.system.disableOnHidden);
+    const toRemoveSourceEffects = inactiveSourceEffects.filter(e => e.system.disableOnHidden);
     const toRemoveAppliedEffects = canvas.scene.tokens
       .filter(t => t.actor && (t !== token))
       .flatMap(t => t.actor.appliedEffects)
       .filter(e => e.flags?.auraeffects?.fromAura && toRemoveSourceEffects.some(sourceEff => e.origin === sourceEff.uuid));
     if (toRemoveAppliedEffects.length) await removeAndReplaceAuras(toRemoveAppliedEffects, token.parent);
   }
-  if (!("x" in updates) && !("y" in updates) && !("elevation" in updates) && !("hidden" in updates)) return;
+  if (("x" in updates) || ("y" in updates) || ("elevation" in updates)) return;
+  // Handle things that would have already been handled if this was a movement update
+  if (updates.hidden === false) {
+    const actorToEffectsMap = {};
+    for (const effect of activeSourceEffects) {
+      const { distance: radius, disposition, collisionTypes } = effect.system;
+      if (!radius) continue;
+      const inRange = new Set(
+        getNearbyTokens(token, radius, { disposition, collisionTypes })
+        .filter(t => executeScript(token, t, effect))
+        .map(t => t.actor)
+      );
+      const toAddTo = Array.from(inRange.filter(a => (a !== token.actor) && !a?.effects.find(e => e.origin === effect.uuid))).map(a => a?.uuid);
+      for (const actorUuid of toAddTo) {
+        actorToEffectsMap[actorUuid] = (actorToEffectsMap[actorUuid] ?? []).concat(effect.uuid);
+      }
+    }
+    await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
+  }
+}
+
+/**
+ * Provided the arguments for the moveToken hook, checks if any effects on the token are aura source effects
+ * and, if so, removes/adds to nearby tokens as necessary. Also checks if moving should remove non-source aura
+ * effects (or add them) and does so if necessary.
+
+ * @param {TokenDocument} token                 The existing TokenDocument which was updated
+ * @param {TokenMovementOperation} movement     The movement of the Token
+ * @param {DatabaseUpdateOperation} operation   The update operation that contains the movement
+ * @param {User} user                           The User that requested the update operation
+ */
+async function moveToken(token, movement, operation, user) {
+  // Exit early for non-initiators, if no active GM, or if non-movement update
+  if (game.user !== user) return;
+  const activeGM = game.users.activeGM;
+  if (!activeGM) {
+    if (!seenWarning) {
+      ui.notifications.warn("AURAEFFECTS.NoActiveGM", { localize: true });
+      seenWarning = true;
+    }
+    return;
+  }
+  if (!token.actor) return;
   const [activeSourceEffects, inactiveSourceEffects] = getAllAuraEffects(token.actor);
   const inactiveUuids = inactiveSourceEffects.map(e => e.uuid);
 
@@ -50,7 +96,7 @@ async function updateToken(token, updates, options, userId) {
   for (const effect of activeSourceEffects) {
     const { distance: radius, disposition, collisionTypes } = effect.system;
     if (!radius) continue;
-    preMoveRanges[effect.uuid] = new Set(getNearbyTokens(token, radius, { disposition, collisionTypes }).map(t => t.actor));
+    preMoveRanges[effect.uuid] = new Set(getNearbyTokens(token, radius, { origin: movement.origin, disposition, collisionTypes }).map(t => t.actor));
   }
   await token.object.movementAnimationPromise;
 
@@ -236,6 +282,7 @@ function injectAuraButton(app, html) {
 function registerHooks() {
   // Effect application/removal-specific hooks
   Hooks.on("updateToken", updateToken);
+  Hooks.on("moveToken", moveToken);
   Hooks.on("renderActiveEffectConfig", injectAuraButton);
   Hooks.on("updateActiveEffect", updateActiveEffect);
   Hooks.on("deleteActiveEffect", deleteActiveEffect);
