@@ -1,6 +1,8 @@
 import { DISPOSITIONS } from "./constants.mjs";
+import { executeScript } from "./helpers.mjs";
+/** @import { ActiveEffect } from "@client/documents/_module.mjs"; */
 
-const { BooleanField, ColorField, JavaScriptField, NumberField, SetField, StringField } = foundry.data.fields;
+const { ArrayField, BooleanField, ColorField, JavaScriptField, NumberField, SetField, SchemaField, StringField } = foundry.data.fields;
 
 export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel {
   static LOCALIZATION_PREFIXES = ["AURAEFFECTS.ACTIVEEFFECT.Aura"];
@@ -42,6 +44,13 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
       }),
       overrideName: new StringField({ initial: '' }),
       script: new JavaScriptField(),
+      stashedChanges: new ArrayField(new SchemaField({
+        key: new StringField(),
+        value: new StringField(),
+        mode: new NumberField(),
+        priority: new NumberField()
+      })),
+      stashedStatuses: new SetField(new StringField()),
       showRadius: new BooleanField({ initial: false })
     }
   }
@@ -61,16 +70,33 @@ export default class AuraActiveEffectData extends foundry.abstract.TypeDataModel
   }
 
   prepareDerivedData() {
+    let actor = this.parent.parent;
+    if (actor instanceof Item) actor = actor.actor;
     if (!this.applyToSelf) {
+      this.stashedChanges = this.parent.changes;
+      this.stashedStatuses = this.parent.statuses;
       this.parent.changes = [];
       this.parent.statuses = new Set();
+    } else {
+      const token = actor?.getActiveTokens(false, true)[0];
+      if (token) {
+        if (!executeScript(token, token, this.parent)) {
+          this.stashedChanges = this.parent.changes;
+          this.stashedStatuses = this.parent.statuses;
+          this.parent.changes = [];
+          this.parent.statuses = new Set();
+        } else {
+          this.parent.changes = this.stashedChanges;
+          this.parent.statuses = this.stashedStatuses;
+        }
+      }
     }
     if (!this.canStack) {
-      let actor = this.parent.parent;
-      if (actor instanceof Item) actor = actor.actor;
       const nameMatch = this.overrideName || this.parent.name;
       const existing = actor?.appliedEffects.find(e => e.flags?.auraeffects?.fromAura && e.name === nameMatch);
       if (existing) {
+        this.stashedChanges = this.parent.changes;
+        this.stashedStatuses = this.parent.statuses;
         this.parent.changes = [];
         this.parent.statuses = new Set();
       }

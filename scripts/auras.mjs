@@ -1,6 +1,6 @@
 import AuraActiveEffectData from "./AuraActiveEffectData.mjs";
 import AuraActiveEffectSheet from "./AuraActiveEffectSheet.mjs";
-import { executeScript, getAllAuraEffects, getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete, removeAndReplaceAuras } from "./helpers.mjs";
+import { executeScript, getAllAuraEffects, getChangingSceneAuras, getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete, removeAndReplaceAuras } from "./helpers.mjs";
 import { applyAuraEffects, deleteEffects } from "./queries.mjs";
 import { registerSettings } from "./settings.mjs";
 import { overrideSheets } from "./plugins/pluginHelpers.mjs";
@@ -13,6 +13,69 @@ import { api } from "./api.mjs";
 
 // Track whether the "with no GM this no work" warning has been seen
 let seenWarning = false;
+
+/**
+ * Provided the arguments for the createActiveEffect or deleteActiveEffect hooks, check whether any updates should
+ * cause a change in auras and applies those changes
+ * @param {ActiveEffect} effect   The effect being created or deleted
+ * @param {Object} options        Additional options
+ * @param {String} userId         The initiating User's ID
+ */
+async function addRemoveEffect(effect, options, userId) {
+  if (!effect.modifiesActor || !(effect.target instanceof Actor)) return;
+  // Avoid calling this every time we add/remove an aura effect. Might miss some weird conditionals, but saves time
+  if (foundry.utils.getProperty(effect, 'flags.auraeffects.fromAura')) return;
+  // Exit early for non-initiators, if no active GM, or if non-movement update
+  if (game.user.id !== userId) return;
+  const activeGM = game.users.activeGM;
+  if (!activeGM) {
+    if (!seenWarning) {
+      ui.notifications.warn("AURAEFFECTS.NoActiveGM", { localize: true });
+      seenWarning = true;
+    }
+    return;
+  }
+  const [activeSourceEffects, inactiveSourceEffects] = getAllAuraEffects(effect.target);
+  const mainToken = effect.target.getActiveTokens(false, true)[0];
+  if (!mainToken) return;
+
+  // Handle source effect condition re-evaluation
+  const actorToEffectsMap = {};
+  const toDelete = [];
+  for (const sourceEffect of activeSourceEffects) {
+    const { distance: radius, disposition, collisionTypes, script } = sourceEffect.system;
+    if (!script) continue;
+    await sourceEffect.prepareData();
+    const nearby = getNearbyTokens(mainToken, radius, { disposition, collisionTypes });
+    if (!nearby.length) continue;
+    const shouldHave = nearby.filter(t => t !== mainToken && executeScript(mainToken, t, sourceEffect));
+    const toAddTo = shouldHave
+      .map(t => t.actor)
+      .filter(a => !a?.effects.find(e => e.origin === sourceEffect.uuid))
+      .map(a => a.uuid);
+    for (const actorUuid of toAddTo) {
+      actorToEffectsMap[actorUuid] = (actorToEffectsMap[actorUuid] ?? []).concat(sourceEffect.uuid);
+    }
+    const shouldNotHave = nearby.filter(t => !toAddTo.includes(t));
+    for (const currToken of shouldNotHave) {
+      const badEffect = currToken.actor.effects.find(e => e.origin === sourceEffect.uuid);
+      if (badEffect) toDelete.push(badEffect);
+    }
+  }
+
+  // Handle effects which currently target the token re-evaluating
+  const [sceneAurasToRemove, sceneAurasToAdd] = getChangingSceneAuras(mainToken);
+
+  // Remove effects actor shouldn't have, add effects actor should have (if final segment of token's movement)
+  if (sceneAurasToRemove.length) toDelete.push(...sceneAurasToRemove);
+  for (const addEffect of sceneAurasToAdd) {
+    if (addEffect.uuid === effect.origin) continue;
+    actorToEffectsMap[mainToken.actor.uuid] = (actorToEffectsMap[mainToken.actor.uuid] ?? []).concat(addEffect.uuid);
+  }
+
+  if (!foundry.utils.isEmpty(actorToEffectsMap)) await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
+  if (toDelete) await removeAndReplaceAuras(toDelete, mainToken.parent);
+}
 
 /**
  * Provided the arguments for the updateToken hook, checks whether any updates should cause a change in
@@ -62,7 +125,7 @@ async function updateToken(token, updates, options, userId) {
         actorToEffectsMap[actorUuid] = (actorToEffectsMap[actorUuid] ?? []).concat(effect.uuid);
       }
     }
-    await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
+    if (!foundry.utils.isEmpty(actorToEffectsMap)) await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
   }
 }
 
@@ -127,45 +190,10 @@ async function moveToken(token, movement, operation, user) {
     }
   }
   if (isFinalMovementComplete(token)) {
-    await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
+    if (!foundry.utils.isEmpty(actorToEffectsMap)) await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
   }
 
-  const currentAppliedAuras = token.actor.appliedEffects.filter(i => i.flags?.auraeffects?.fromAura);
-  // Get all aura source effects on the scene, split into "actor shouldn't have" and "actor should have"
-  const [sceneAurasToRemove, sceneAurasToAdd] = token.parent.tokens.reduce(([toRemove, toAdd], sourceToken) => {
-    if (sourceToken.actor === token.actor) return [toRemove, toAdd];
-    // -1 if enemies, 0 if at least one is neutral, 1 if allied
-    // TODO: account for secret? Should secret be treated as hostile, friendly, or neutral?
-    // Currently is -2, 0, or 2, so will only really work with "any"
-    const disposition = token.disposition * sourceToken.disposition;
-    const [activeAuraEffects, inactiveAuraEffects] = getAllAuraEffects(sourceToken.actor);
-    const currentlyAppliedToRemove = currentAppliedAuras.filter(appliedEffect => inactiveAuraEffects.some(inactiveEffect => appliedEffect.origin === inactiveEffect.uuid));
-    if (inactiveAuraEffects.length) toRemove.push(...currentlyAppliedToRemove);
-    const auraEffects = activeAuraEffects
-      .filter(e => [0, disposition].includes(e.system.disposition));
-    if (!auraEffects.length) return [toRemove, toAdd];
-
-    for (const currEffect of auraEffects) {
-      const distance = getTokenToTokenDistance(sourceToken, token, { collisionTypes: currEffect.system.collisionTypes });
-      const currentlyApplied = currentAppliedAuras.find(e => e.origin === currEffect.uuid);
-      if ((currEffect.system.distance < distance) || !executeScript(sourceToken, token, currEffect)) {
-        if (currentlyApplied) toRemove.push(currentlyApplied);
-      } else toAdd.push(currEffect);
-    }
-
-    // TODO: Can I do this clever thing and still handle the proper collision checks? 
-    // Would prefer not to repeat distance checks unnecessarily
-    // const distance = getTokenToTokenDistance(token, sourceToken);
-    // toRemove.push(...auraEffects.filter(e => e.system.distance < distance));
-    // toAdd.push(...auraEffects.filter(e => e.system.distance >= distance));
-    return [toRemove, toAdd]
-  }, [[], []]);
-
-  for (const effect of token.actor.appliedEffects) {
-    if (!effect.flags?.auraeffects?.fromAura) continue;
-    const sourceEffect = fromUuidSync(effect.origin);
-    if (!sourceEffect || sourceEffect.disabled || sourceEffect.isSuppressed) sceneAurasToRemove.push(effect);
-  }
+  const [sceneAurasToRemove, sceneAurasToAdd] = getChangingSceneAuras(token);
 
   // Remove effects actor shouldn't have, add effects actor should have (if final segment of token's movement)
   if (sceneAurasToRemove.length) await removeAndReplaceAuras(sceneAurasToRemove, token.parent);
@@ -211,7 +239,7 @@ async function updateActiveEffect(effect, updates, options, userId) {
     const tokensInRange = getNearbyTokens(token, radius, { disposition, collisionTypes }).map(t => t.actor)
     const toAddTo = tokensInRange.filter(a => (a !== token.actor) && !a?.effects.find(e => e.origin === effect.uuid)).map(a => a?.uuid);
     const actorToEffectsMap = Object.fromEntries(toAddTo.map(actorUuid => [actorUuid, [effect.uuid]]));
-    await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
+    if (!foundry.utils.isEmpty(actorToEffectsMap)) await activeGM.query("auraeffects.applyAuraEffects", actorToEffectsMap);
   }
 }
 
@@ -281,6 +309,8 @@ function injectAuraButton(app, html) {
 
 function registerHooks() {
   // Effect application/removal-specific hooks
+  Hooks.on("createActiveEffect", addRemoveEffect);
+  Hooks.on("deleteActiveEffect", addRemoveEffect);
   Hooks.on("updateToken", updateToken);
   Hooks.on("moveToken", moveToken);
   Hooks.on("renderActiveEffectConfig", injectAuraButton);

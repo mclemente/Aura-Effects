@@ -1,5 +1,9 @@
 # Aura Effects Changelog
 
+## Version 1.1.0
+- Aura Effects now refresh if necessary on adding/removing effects to an actor (e.g. re-running conditional scripts when they exist)
+- Conditional Scripts now apply to the source actor as well
+
 ## Version 1.0.2
 - Fixed release bug (maybe?)
 

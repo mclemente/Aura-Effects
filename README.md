@@ -46,6 +46,11 @@ The "Conditional Script" field expects an expression - if truthy (or left blank)
 - `actor`: The Actor for said Token.
 - `sourceToken`: The Token placeable from whom the aura is emanating.
 - `rollData`: The roll data for the above actor
+As an example of a potential use for a condition script:
+```js
+!sourceToken.actor.statuses.has("incapacitated") && actor.name.toLowerCase().includes("steve")
+```
+This would apply the aura only if 1. The source actor did not have the `incapacitated` status, and 2. The token within range had "steve" in its name.
 
 ### Aura Can Stack & "Best" Formula
 "Aura Can Stack" is fairly straightforward; if true, multiple auras of the same name can apply to the same token. Otherwise, only one can apply at a time. What determines _which_ of multiple applies is whatever is entered in the `"Best" Formula` field. It can be any valid deterministic formula, which will be evaluated on the _source_ actor's roll data. For instance, as in the example above, you could set it to `@abilities.cha.mod` in the 5e system, and then the "strongest" aura would belong to the source with the best Charisma modifier.

@@ -149,6 +149,51 @@ function getAllAuraEffects(actor) {
 }
 
 /**
+ * Determine a list of auras on-scene which should be removed from, and which should be added to, a token
+ * @param {TokenDocument} token                 The token which should be having auras added/removed from it
+ * @returns {[ActiveEffect[], ActiveEffect[]]}  The Arrays of aura effects (to remove, then to add)
+ */
+function getChangingSceneAuras(token) {
+  const currentAppliedAuras = token.actor.appliedEffects.filter(i => i.flags?.auraeffects?.fromAura);
+  // Get all aura source effects on the scene, split into "actor shouldn't have" and "actor should have"
+  const [sceneAurasToRemove, sceneAurasToAdd] = token.parent.tokens.reduce(([toRemove, toAdd], sourceToken) => {
+    if (sourceToken.actor === token.actor) return [toRemove, toAdd];
+    // -1 if enemies, 0 if at least one is neutral, 1 if allied
+    // TODO: account for secret? Should secret be treated as hostile, friendly, or neutral?
+    // Currently is -2, 0, or 2, so will only really work with "any"
+    const disposition = token.disposition * sourceToken.disposition;
+    const [activeAuraEffects, inactiveAuraEffects] = getAllAuraEffects(sourceToken.actor);
+    const currentlyAppliedToRemove = currentAppliedAuras.filter(appliedEffect => inactiveAuraEffects.some(inactiveEffect => appliedEffect.origin === inactiveEffect.uuid));
+    if (inactiveAuraEffects.length) toRemove.push(...currentlyAppliedToRemove);
+    const auraEffects = activeAuraEffects
+      .filter(e => [0, disposition].includes(e.system.disposition));
+    if (!auraEffects.length) return [toRemove, toAdd];
+
+    for (const currEffect of auraEffects) {
+      const distance = getTokenToTokenDistance(sourceToken, token, { collisionTypes: currEffect.system.collisionTypes });
+      const currentlyApplied = currentAppliedAuras.find(e => e.origin === currEffect.uuid);
+      if ((currEffect.system.distance < distance) || !executeScript(sourceToken, token, currEffect)) {
+        if (currentlyApplied) toRemove.push(currentlyApplied);
+      } else toAdd.push(currEffect);
+    }
+
+    // TODO: Can I do this clever thing and still handle the proper collision checks? 
+    // Would prefer not to repeat distance checks unnecessarily
+    // const distance = getTokenToTokenDistance(token, sourceToken);
+    // toRemove.push(...auraEffects.filter(e => e.system.distance < distance));
+    // toAdd.push(...auraEffects.filter(e => e.system.distance >= distance));
+    return [toRemove, toAdd]
+  }, [[], []]);
+
+  for (const effect of token.actor.appliedEffects) {
+    if (!effect.flags?.auraeffects?.fromAura) continue;
+    const sourceEffect = fromUuidSync(effect.origin);
+    if (!sourceEffect || sourceEffect.disabled || sourceEffect.isSuppressed) sceneAurasToRemove.push(effect);
+  }
+  return [sceneAurasToRemove, sceneAurasToAdd]
+}
+
+/**
  * Remove specified auras, ensuring that any non-stacking auras perform a search for the "next-best"
  * and apply it, if present
  * @param {ActiveEffect[]} effects  The effects which will be removed
@@ -166,7 +211,7 @@ async function removeAndReplaceAuras(effects, scene) {
   }, {});
 
   // Remove effects
-  await activeGM.query("auraeffects.deleteEffects", { effectUuids: effects.map(e => e.uuid) });
+  if (effects) await activeGM.query("auraeffects.deleteEffects", { effectUuids: effects.map(e => e.uuid) });
 
   // Get all on-scene aura sources for the effects just deleted, sort by best, apply to tokens as possible
   const newBestApplyMap = {};
@@ -201,7 +246,7 @@ async function removeAndReplaceAuras(effects, scene) {
       }
     }
   });
-  return activeGM.query("auraeffects.applyAuraEffects", newBestApplyMap);
+  if (!foundry.utils.isEmpty(newBestApplyMap)) return activeGM.query("auraeffects.applyAuraEffects", newBestApplyMap);
 }
 
 /**
@@ -239,5 +284,6 @@ export {
   getExtendedParts,
   getExtendedTabs,
   executeScript,
-  removeAndReplaceAuras
+  removeAndReplaceAuras,
+  getChangingSceneAuras
 };
