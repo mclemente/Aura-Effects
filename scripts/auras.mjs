@@ -1,9 +1,9 @@
 import AuraActiveEffectData from "./AuraActiveEffectData.mjs";
-import AuraActiveEffectSheet from "./AuraActiveEffectSheet.mjs";
 import { executeScript, getAllAuraEffects, getChangingSceneAuras, getNearbyTokens, getTokenToTokenDistance, isFinalMovementComplete, removeAndReplaceAuras } from "./helpers.mjs";
 import { applyAuraEffects, deleteEffects } from "./queries.mjs";
 import { registerSettings } from "./settings.mjs";
 import { overrideSheets } from "./plugins/pluginHelpers.mjs";
+import ActiveEffectSheetMixin from "./AuraActiveEffectSheet.mjs";
 import { canvasInit, destroyToken, drawGridLayer, drawToken, refreshToken, updateAllVisualizations, updateTokenVisualization } from "./auraVisualization.mjs";
 import { migrate } from "./migrations.mjs";
 import { api } from "./api.mjs";
@@ -332,10 +332,8 @@ function registerQueries() {
 }
 
 function registerAuraType() {
-  Object.assign(CONFIG.ActiveEffect.dataModels, {
-    "auraeffects.aura": AuraActiveEffectData
-  });
-  foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, "auraeffects", AuraActiveEffectSheet, {
+  const defaultAESheet = Object.values(CONFIG.ActiveEffect.sheetClasses.base).find((data) => data.default).cls;
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, "auraeffects", ActiveEffectSheetMixin(defaultAESheet), {
     label: "AURAEFFECTS.SHEETS.AuraActiveEffectSheet",
     types: ["auraeffects.aura"],
     makeDefault: true
@@ -345,12 +343,15 @@ function registerAuraType() {
 Hooks.once("init", () => {
   registerHooks();
   registerQueries();
-  registerAuraType();
+  Object.assign(CONFIG.ActiveEffect.dataModels, {
+    "auraeffects.aura": AuraActiveEffectData
+  });
   registerSettings();
   CONFIG.Canvas.polygonBackends.aura = foundry.canvas.geometry.ClockwiseSweepPolygon;
 });
 
 Hooks.once("ready", () => {
+  registerAuraType();
   overrideSheets();
   game.modules.get("auraeffects").api = api;
   if (game.user.isActiveGM) migrate();
